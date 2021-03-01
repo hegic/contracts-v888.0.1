@@ -2,6 +2,7 @@ dist: trusty
 os: linux
 language: node_js
 node_js: 15.8
+
 install: npm i
 
 jobs:
