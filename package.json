@@ -1,0 +1,42 @@
+{
+  "name": "hegic-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "truffle console",
+    "ganache": "ganache-cli -de 10000000",
+    "test": "truffle test",
+    "coverage": "truffle run coverage",
+    "lint": "prettier --check './**/*.js' './**/*.sol' './**/*.md'",
+    "lint:fix": "prettier --write './**/*.js' './**/*.sol' './**/*.md'"
+  },
+  "author": "",
+  "license": "GPLv3",
+  "devDependencies": {
+    "@codechecks/client": "^0.1.10",
+    "@openzeppelin/test-environment": "^0.1.9",
+    "@truffle/debug-utils": "^4.2.14",
+    "@truffle/hdwallet-provider": "^1.2.2",
+    "chai": "^4.3.0",
+    "coveralls": "^3.1.0",
+    "eth-gas-reporter": "^0.2.21",
+    "ganache-cli": "^6.12.2",
+    "mocha": "^7.2.0",
+    "node-pre-gyp": "^0.11.0",
+    "pify": "^5.0.0",
+    "prettier": "^2.2.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.5",
+    "solidity-coverage": "^0.7.15",
+    "truffle": "5.1.65",
+    "truffle-flattener": "^1.5.0"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.0.8",
+    "@openzeppelin/contracts": "^3.1.0",
+    "@uniswap/v2-periphery": "^1.0.0-beta.0"
+  }
+}
