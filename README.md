@@ -1,12 +1,51 @@
-# Hegic v888.0.1
+# Hardhat Boilerplate
 
-[![Build Status](https://travis-ci.com/hegic/contracts.svg?token=zpYUuxNWJBVL98Mp2xNT&branch=development)](https://travis-ci.com/hegic/contracts)
-[![codecov](https://codecov.io/gh/hegic/contracts/branch/development/graph/badge.svg?token=TPK7IUJP2N)](https://codecov.io/gh/hegic/contracts)
-[![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://opensource.org/licenses/)
-[![Twitter Follow](https://img.shields.io/twitter/follow/HegicOptions.svg?label=HegicOptions&style=social)](https://twitter.com/HegicOptions)
-[![Discord](https://img.shields.io/discord/679629806043660298.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discordapp.com/invite/znjdj8q)
-[![Chat on Telegram](https://img.shields.io/badge/Chat%20on-Telegram-blue.svg)](https://t.me/HegicOptions)
+![ci](https://github.com/shapeshed/hardhat-boilerplate/workflows/Continuous%20Integration/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/shapeshed/hardhat-boilerplate/branch/master/graph/badge.svg?token=FVXeaaBA3d)](https://codecov.io/gh/shapeshed/hardhat-boilerplate)
 
-Hegic v888.0.1 is currently in beta. It has not yet been officially deployed to Ethereum mainnet.
+A boilerplate hardhat project with sane defaults.
 
-Deploy/use at your own risk.
+- [solhint][1]
+- [eslint][6]
+- [prettier][2]
+- [typescript][4]
+- [typechain][3]
+- [dotenv][7]
+
+## Prerequisities
+
+- [Node.js][5]
+
+## Install
+
+    npm install
+
+## Tasks
+
+Build the project
+
+    npm run build
+
+Run tests
+
+    npm test
+
+Lint solidity and typescript code
+
+    npm run lint
+
+Check file formatting
+
+    npm run lint
+
+Generate code coverage
+
+    npm run coverage
+
+[1]: https://protofire.github.io/solhint/
+[2]: https://prettier.io/
+[3]: https://www.typescriptlang.org/
+[4]: https://hardhat.org/plugins/hardhat-typechain.html
+[5]: https://nodejs.org/
+[6]: https://eslint.org/
+[7]: https://www.npmjs.com/package/dotenv
