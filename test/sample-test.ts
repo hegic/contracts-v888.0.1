@@ -110,6 +110,7 @@ describe("HegicPool", async () => {
     })
   })
 
+  // TODO - factor out providing funds step
   describe("provideFrom", async () => {
     it("should supply funds to the pool", async () => {
       const [owner, addr1] = await ethers.getSigners()
@@ -121,6 +122,69 @@ describe("HegicPool", async () => {
         BN.from(100000),
       )
       expect(await hegicPool.availableBalance()).to.eq(BN.from(100000))
+    })
+
+    it("should set the Tranche values correctly", async () => {
+      const [owner, addr1] = await ethers.getSigners()
+      const ownerAddress = await owner.getAddress()
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+      const tranche = await hegicPool.tranches(BN.from(0))
+      // Set by INITIAL_RATE
+      expect(tranche.share).to.eq(BN.from(10).pow(25))
+      expect(tranche.state).to.eq(BN.from(1))
+      expect(tranche.amount).to.eq(BN.from(100000))
+      expect(tranche.hedged).to.eq(true)
+    })
+
+    it("should set the Tranche values correctly when unhedged", async () => {
+      const [owner, addr1] = await ethers.getSigners()
+      const ownerAddress = await owner.getAddress()
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        false,
+        BN.from(100000),
+      )
+      const tranche = await hegicPool.tranches(BN.from(0))
+      // Set by INITIAL_RATE
+      expect(tranche.share).to.eq(BN.from(10).pow(25))
+      expect(tranche.state).to.eq(BN.from(1))
+      expect(tranche.amount).to.eq(BN.from(100000))
+      expect(tranche.hedged).to.eq(false)
+    })
+
+    it("should emit a Provide event with correct values", async () => {
+      const [owner, addr1] = await ethers.getSigners()
+      const ownerAddress = await owner.getAddress()
+      const tx = hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+
+      await expect(tx)
+        .to.emit(hegicPool, "Provide")
+        .withArgs(ownerAddress, BN.from(100000), BN.from(10).pow(25), true)
+    })
+    it("should emit a Provide event with correct values when unhedged", async () => {
+      const [owner, addr1] = await ethers.getSigners()
+      const ownerAddress = await owner.getAddress()
+      const tx = hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        false,
+        BN.from(100000),
+      )
+
+      await expect(tx)
+        .to.emit(hegicPool, "Provide")
+        .withArgs(ownerAddress, BN.from(100000), BN.from(10).pow(25), false)
     })
   })
 
