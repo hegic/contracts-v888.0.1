@@ -39,13 +39,13 @@ describe("HegicPool", async () => {
     it("should fail if the caller is not owner", async () => {
       const [owner, addr1] = await ethers.getSigners()
       await expect(
-        hegicPool.connect(addr1).setLockupPeriod(BN.from(10))
+        hegicPool.connect(addr1).setLockupPeriod(BN.from(10)),
       ).to.be.revertedWith("caller is not the owner")
     })
 
     it("should fail if the period is greater than 60 days", async () => {
       await expect(
-        hegicPool.setLockupPeriod(BN.from(5184001))
+        hegicPool.setLockupPeriod(BN.from(5184001)),
       ).to.be.revertedWith("Lockup period is too long")
     })
 
