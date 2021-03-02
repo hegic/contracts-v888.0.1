@@ -1,7 +1,7 @@
 # Hardhat Boilerplate
 
-![ci](https://github.com/shapeshed/hardhat-boilerplate/workflows/Continuous%20Integration/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/shapeshed/hardhat-boilerplate/branch/master/graph/badge.svg?token=FVXeaaBA3d)](https://codecov.io/gh/shapeshed/hardhat-boilerplate)
+[![Continuous Integration](https://github.com/shapeshed/contracts/actions/workflows/ci.yaml/badge.svg)](https://github.com/shapeshed/contracts/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/gh/shapeshed/contracts/branch/hardhat/graph/badge.svg?token=AjWJw6x67r)](https://codecov.io/gh/shapeshed/contracts)
 
 A boilerplate hardhat project with sane defaults.
 
