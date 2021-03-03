@@ -152,7 +152,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         iv = iv.mul(period.sqrt());
         uint256 utilization = pool.lockedAmount().mul(100e8).div(poolBalance);
         if (utilization > 40e8) {
-            iv = iv.mul(utilization.sub(40e8)).mul(utilizationRate).div(40e16);
+            iv += iv.mul(utilization.sub(40e8)).mul(utilizationRate).div(40e16);
         }
     }
 
