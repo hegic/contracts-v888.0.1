@@ -1,5 +1,5 @@
 import {ethers} from "hardhat"
-import {BigNumber as BN} from "ethers"
+import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicPool} from "../typechain/HegicPool"
@@ -11,14 +11,17 @@ const {expect} = chai
 describe("HegicPool", async () => {
   let hegicPool: HegicPool
   let mockERC20: MockErc20
+  let signers: Signer[]
+  let mockERC20Address: string
+  let hegicPoolAddress: string
+  let ownerAddress: string
+
   const name = "Wrapped BTC"
   const symbol = "WBTC"
   const decimals = "8"
-  let mockERC20Address = ""
-  let hegicPoolAddress = ""
 
   beforeEach(async () => {
-    const [owner, addr1] = await ethers.getSigners()
+    signers = await ethers.getSigners()
 
     const mockERC20Factory = await ethers.getContractFactory("MockERC20")
     mockERC20 = (await mockERC20Factory.deploy(
@@ -27,7 +30,7 @@ describe("HegicPool", async () => {
       decimals,
     )) as MockErc20
     await mockERC20.deployed()
-    const ownerAddress = await owner.getAddress()
+    ownerAddress = await signers[0].getAddress()
     await mockERC20.mint(ownerAddress, BN.from(10).pow(20))
     mockERC20Address = await mockERC20.address
 
@@ -35,13 +38,13 @@ describe("HegicPool", async () => {
     hegicPool = (await hegicPoolFactory.deploy(
       mockERC20Address,
       name,
-      name,
+      symbol,
     )) as HegicPool
     await hegicPool.deployed()
     hegicPoolAddress = await hegicPool.address
 
     await mockERC20
-      .connect(owner)
+      .connect(signers[0])
       .approve(hegicPoolAddress, BN.from(10).pow(20))
   })
 
@@ -63,10 +66,9 @@ describe("HegicPool", async () => {
   })
 
   describe("setLockupPeriod", async () => {
-    it("should fail if the caller is not owner", async () => {
-      const [owner, addr1] = await ethers.getSigners()
+    it("should fail if the caller is not the owner", async () => {
       await expect(
-        hegicPool.connect(addr1).setLockupPeriod(BN.from(10)),
+        hegicPool.connect(signers[1]).setLockupPeriod(BN.from(10)),
       ).to.be.revertedWith("caller is not the owner")
     })
 
@@ -86,18 +88,16 @@ describe("HegicPool", async () => {
   })
 
   describe("lock", async () => {
-    it("should fail if the caller is not owner", async () => {
-      const [owner, addr1] = await ethers.getSigners()
+    it("should fail if the caller is not the owner", async () => {
       await expect(
-        hegicPool.connect(addr1).lock(BN.from(1), BN.from(1)),
+        hegicPool.connect(signers[1]).lock(BN.from(1), BN.from(1)),
       ).to.be.revertedWith("caller is not the owner")
     })
 
     // If the lockedAmount * 10 <= balance * 8 it should fail
     it("should fail if the locked amount less", async () => {
-      const [owner, addr1] = await ethers.getSigners()
       await expect(
-        hegicPool.connect(addr1).lock(BN.from(1), BN.from(1)),
+        hegicPool.connect(signers[1]).lock(BN.from(1), BN.from(1)),
       ).to.be.revertedWith("caller is not the owner")
     })
   })
@@ -113,8 +113,6 @@ describe("HegicPool", async () => {
   // TODO - factor out providing funds step
   describe("provideFrom", async () => {
     it("should supply funds to the pool", async () => {
-      const [owner, addr1] = await ethers.getSigners()
-      const ownerAddress = await owner.getAddress()
       await hegicPool.provideFrom(
         ownerAddress,
         BN.from(100000),
@@ -125,8 +123,6 @@ describe("HegicPool", async () => {
     })
 
     it("should set the Tranche values correctly", async () => {
-      const [owner, addr1] = await ethers.getSigners()
-      const ownerAddress = await owner.getAddress()
       await hegicPool.provideFrom(
         ownerAddress,
         BN.from(100000),
@@ -142,8 +138,6 @@ describe("HegicPool", async () => {
     })
 
     it("should set the Tranche values correctly when unhedged", async () => {
-      const [owner, addr1] = await ethers.getSigners()
-      const ownerAddress = await owner.getAddress()
       await hegicPool.provideFrom(
         ownerAddress,
         BN.from(100000),
@@ -159,30 +153,26 @@ describe("HegicPool", async () => {
     })
 
     it("should emit a Provide event with correct values", async () => {
-      const [owner, addr1] = await ethers.getSigners()
-      const ownerAddress = await owner.getAddress()
-      const tx = hegicPool.provideFrom(
-        ownerAddress,
-        BN.from(100000),
-        true,
-        BN.from(100000),
+      await expect(
+        hegicPool.provideFrom(
+          ownerAddress,
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        ),
       )
-
-      await expect(tx)
         .to.emit(hegicPool, "Provide")
         .withArgs(ownerAddress, BN.from(100000), BN.from(10).pow(25), true)
     })
     it("should emit a Provide event with correct values when unhedged", async () => {
-      const [owner, addr1] = await ethers.getSigners()
-      const ownerAddress = await owner.getAddress()
-      const tx = hegicPool.provideFrom(
-        ownerAddress,
-        BN.from(100000),
-        false,
-        BN.from(100000),
+      await expect(
+        hegicPool.provideFrom(
+          ownerAddress,
+          BN.from(100000),
+          false,
+          BN.from(100000),
+        ),
       )
-
-      await expect(tx)
         .to.emit(hegicPool, "Provide")
         .withArgs(ownerAddress, BN.from(100000), BN.from(10).pow(25), false)
     })
