@@ -176,10 +176,51 @@ describe("HegicPool", async () => {
   })
 
   describe("send", async () => {
+    beforeEach(async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+    })
+
     it("should revert if to is zero address", async () => {
       await expect(
         hegicPool.send(BN.from(0), ethers.constants.AddressZero, BN.from(1)),
       ).to.be.reverted
+    })
+
+    it("should revert if the locked liquidity id does not exist", async () => {
+      await expect(hegicPool.send(BN.from(0), ownerAddress, BN.from(100000))).to
+        .be.reverted
+    })
+
+    it("should emit a Loss event with correct data", async () => {
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await expect(hegicPool.send(BN.from(0), ownerAddress, BN.from(100000)))
+        .to.emit(hegicPool, "Loss")
+        .withArgs(BN.from(0), BN.from(10000), BN.from(0))
+    })
+
+    it("should transfer tokens correctly", async () => {
+      const balanceBefore = await mockERC20.balanceOf(ownerAddress)
+      // Minted value minus amount pooled in beforeEach block
+      expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.send(BN.from(0), ownerAddress, BN.from(10000))
+      const balanceAfter = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
+    })
+
+    it("should transfer the locked amount if amount is greater", async () => {
+      const balanceBefore = await mockERC20.balanceOf(ownerAddress)
+      // Minted value minus amount pooled in beforeEach block
+      expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.send(BN.from(0), ownerAddress, BN.from(8888888888))
+      const balanceAfter = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
   })
 
