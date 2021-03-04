@@ -66,13 +66,13 @@ describe("HegicPool", async () => {
   })
 
   describe("setLockupPeriod", async () => {
-    it("should fail if the caller is not the owner", async () => {
+    it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicPool.connect(signers[1]).setLockupPeriod(BN.from(10)),
       ).to.be.revertedWith("caller is not the owner")
     })
 
-    it("should fail if the period is greater than 60 days", async () => {
+    it("should revert if the period is greater than 60 days", async () => {
       await expect(
         hegicPool.setLockupPeriod(BN.from(5184001)),
       ).to.be.revertedWith("Lockup period is too long")
@@ -88,17 +88,90 @@ describe("HegicPool", async () => {
   })
 
   describe("lock", async () => {
-    it("should fail if the caller is not the owner", async () => {
+    beforeEach(async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+    })
+    it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicPool.connect(signers[1]).lock(BN.from(1), BN.from(1)),
       ).to.be.revertedWith("caller is not the owner")
     })
 
-    // If the lockedAmount * 10 <= balance * 8 it should fail
-    it("should fail if the locked amount less", async () => {
+    // If the lockedAmount * 10 <= balance * 8 it should revert
+    it("should revert if the locked amount is too large", async () => {
       await expect(
-        hegicPool.connect(signers[1]).lock(BN.from(1), BN.from(1)),
+        // Balance is 100000 * 8 = 800000
+        // Locked amount is 90000 * 10 = 900000
+        hegicPool.lock(BN.from(90000), BN.from(1)),
+      ).to.be.revertedWith("Pool Error: Amount is too large")
+    })
+
+    it("should create lockup liquidity", async () => {
+      // Premium = premium * hedgedBalance / balance
+      // 10 * 10000 / 10000
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      const ll = await hegicPool.lockedLiquidity(BN.from(0))
+      expect(ll.amount).to.eq(BN.from(10000))
+      expect(ll.hedgePremium).to.eq(BN.from(0))
+      expect(ll.unhedgePremium).to.eq(BN.from(0))
+      expect(ll.locked).to.eq(true)
+    })
+  })
+
+  describe("unlock", async () => {
+    beforeEach(async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+    })
+    it("should revert if the caller is not the owner", async () => {
+      await expect(
+        hegicPool.connect(signers[1]).unlock(BN.from(0)),
       ).to.be.revertedWith("caller is not the owner")
+    })
+
+    it("should revert if locked liquidity id does not exist", async () => {
+      await expect(hegicPool.unlock(BN.from(0))).to.be.reverted
+    })
+
+    it("should revert if locked liquidity has already been unlocked", async () => {
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.unlock(BN.from(0))
+      await expect(hegicPool.unlock(BN.from(0))).to.be.revertedWith(
+        "LockedLiquidity with such id has already been unlocked",
+      )
+    })
+
+    it("should set values correctly", async () => {
+      // Premium = premium * hedgedBalance / balance
+      // 10 * 10000 / 10000
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      const lockedAmountBefore = await hegicPool.lockedAmount()
+      const llBefore = await hegicPool.lockedLiquidity(BN.from(0))
+      expect(lockedAmountBefore).to.eq(BN.from(10000))
+      expect(llBefore.locked).to.eq(true)
+
+      await hegicPool.unlock(BN.from(0))
+
+      const lockedAmountAfter = await hegicPool.lockedAmount()
+      const llAfter = await hegicPool.lockedLiquidity(BN.from(0))
+      expect(lockedAmountAfter).to.eq(BN.from(0))
+      expect(llAfter.locked).to.eq(false)
+    })
+
+    it("should emit a Profit event with correct values", async () => {
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await expect(hegicPool.unlock(BN.from(0)))
+        .to.emit(hegicPool, "Profit")
+        .withArgs(BN.from(0), BN.from(0), BN.from(0))
     })
   })
 
@@ -164,6 +237,7 @@ describe("HegicPool", async () => {
         .to.emit(hegicPool, "Provide")
         .withArgs(ownerAddress, BN.from(100000), BN.from(10).pow(25), true)
     })
+
     it("should emit a Provide event with correct values when unhedged", async () => {
       await expect(
         hegicPool.provideFrom(
