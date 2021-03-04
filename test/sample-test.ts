@@ -52,7 +52,7 @@ describe("HegicPool", async () => {
     it("should set all initial state", async () => {
       expect(await hegicPool.INITIAL_RATE()).to.be.eq(BN.from(10).pow(20))
       expect(await hegicPool.lockupPeriod()).to.be.eq(BN.from(1209600))
-      expect(await hegicPool.hedgeFeeRate()).to.be.eq(BN.from(80))
+      expect(await hegicPool.hedgeFeeRate()).to.be.eq(BN.from(0))
       expect(await hegicPool.lockedAmount()).to.be.eq(BN.from(0))
       expect(await hegicPool.unhedgedShare()).to.be.eq(BN.from(0))
       expect(await hegicPool.hedgedShare()).to.be.eq(BN.from(0))
@@ -222,6 +222,13 @@ describe("HegicPool", async () => {
       const balanceAfter = await mockERC20.balanceOf(ownerAddress)
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
+
+    it("should emit a Profit event with correct data", async () => {
+      await hegicPool.lock(BN.from(10000), BN.from(10))
+      await expect(hegicPool.send(BN.from(0), ownerAddress, BN.from(1)))
+        .to.emit(hegicPool, "Profit")
+        .withArgs(BN.from(0), BN.from(9), BN.from(0))
+    })
   })
 
   // TODO - factor out providing funds step
@@ -234,6 +241,23 @@ describe("HegicPool", async () => {
         BN.from(100000),
       )
       expect(await hegicPool.availableBalance()).to.eq(BN.from(100000))
+    })
+
+    it("should revert if the mintShare is too large", async () => {
+      await expect(
+        hegicPool.provideFrom(
+          ownerAddress,
+          BN.from(10),
+          true,
+          BN.from(10).pow(50),
+        ),
+      ).to.be.revertedWith("Pool: Mint limit is too large")
+    })
+
+    it("should revert if the mint limit is too large", async () => {
+      await expect(
+        hegicPool.provideFrom(ownerAddress, BN.from(0), true, BN.from(0)),
+      ).to.be.revertedWith("Pool: Amount is too small")
     })
 
     it("should set the Tranche values correctly", async () => {
@@ -302,6 +326,22 @@ describe("HegicPool", async () => {
   describe("withdraw", async () => {
     it("should revert if the trancheID does not exist", async () => {
       await expect(hegicPool.withdraw(BN.from(0))).to.be.reverted
+    })
+
+    it("should revert when the tranche is locked up", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+      // tranche share - 10000000000000000000000000
+      // hedged balance - 100000
+      // hedged share - 10000000000000000000000000
+
+      await expect(hegicPool.withdraw(BN.from(0))).to.be.revertedWith(
+        "Pool: Withdrawal is locked up",
+      )
     })
   })
 
