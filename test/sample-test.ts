@@ -54,7 +54,7 @@ describe("HegicPool", async () => {
     it("should set all initial state", async () => {
       expect(await hegicPool.INITIAL_RATE()).to.be.eq(BN.from(10).pow(20))
       expect(await hegicPool.lockupPeriod()).to.be.eq(BN.from(1209600))
-      expect(await hegicPool.hedgeFeeRate()).to.be.eq(BN.from(0))
+      expect(await hegicPool.hedgeFeeRate()).to.be.eq(BN.from(80))
       expect(await hegicPool.lockedAmount()).to.be.eq(BN.from(0))
       expect(await hegicPool.unhedgedShare()).to.be.eq(BN.from(0))
       expect(await hegicPool.hedgedShare()).to.be.eq(BN.from(0))
@@ -259,7 +259,7 @@ describe("HegicPool", async () => {
       await hegicPool.lock(BN.from(10000), BN.from(10))
       await expect(hegicPool.send(BN.from(0), ownerAddress, BN.from(1)))
         .to.emit(hegicPool, "Profit")
-        .withArgs(BN.from(0), BN.from(9), BN.from(0))
+        .withArgs(BN.from(0), BN.from(1), BN.from(0))
     })
   })
 
@@ -447,6 +447,18 @@ describe("HegicPool", async () => {
       await expect(hegicPool.withdraw(BN.from(0)))
         .to.emit(hegicPool, "Withdraw")
         .withArgs(ownerAddress, BN.from(0))
+    })
+  })
+
+  describe("withdrawWithoutHedge", async () => {
+    it("should revert if the trancheID does not exist", async () => {
+      await expect(hegicPool.withdrawWithoutHedge(BN.from(0))).to.be.reverted
+    })
+
+    it("should revert when the sender is not approved or the owner", async () => {
+      await expect(
+        hegicPool.connect(signers[1]).withdrawWithoutHedge(BN.from(0)),
+      ).to.be.reverted
     })
   })
 
