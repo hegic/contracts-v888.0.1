@@ -32,8 +32,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
 
     uint256 public constant INITIAL_RATE = 1e20;
     uint256 public lockupPeriod = 2 weeks;
-    // uint256 public hedgeFeeRate = 80;
-    uint256 public hedgeFeeRate = 0;
+    uint256 public hedgeFeeRate = 80;
 
     uint256 public override lockedAmount;
 
