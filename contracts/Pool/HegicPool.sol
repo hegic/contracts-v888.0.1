@@ -56,6 +56,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
         string memory symbol
     ) ERC721(name, symbol) {
         token = _token;
+        hedgePool = msg.sender;
     }
 
     /**
@@ -65,6 +66,15 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
     function setLockupPeriod(uint256 value) external override onlyOwner {
         require(value <= 60 days, "Lockup period is too long");
         lockupPeriod = value;
+    }
+
+    /**
+     * @notice Used for changing the hedge pool address
+     * @param value New address
+     */
+    function setHedgePool(address value) external override onlyOwner {
+        require(value != address(0));
+        hedgePool = value;
     }
 
     /*

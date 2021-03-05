@@ -70,6 +70,8 @@ interface IHegicLiquidityPool {
 
     function setLockupPeriod(uint256 value) external;
 
+    function setHedgePool(address value) external;
+
     function totalBalance() external view returns (uint256 amount);
 
     function lockedAmount() external view returns (uint256 amount);
