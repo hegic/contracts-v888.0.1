@@ -132,7 +132,7 @@ describe("HegicPool", async () => {
       ).to.be.revertedWith("Pool Error: Amount is too large")
     })
 
-    it("should create lockup liquidity", async () => {
+    it("should create locked liquidity", async () => {
       // Premium = premium * hedgedBalance / balance
       // 10 * 10000 / 10000
       await hegicPool.lock(BN.from(10000), BN.from(0))
@@ -141,6 +141,17 @@ describe("HegicPool", async () => {
       expect(ll.hedgePremium).to.eq(BN.from(0))
       expect(ll.unhedgePremium).to.eq(BN.from(0))
       expect(ll.locked).to.eq(true)
+    })
+
+    xit("should transfer the hedge fee to the hedge pool", async () => {
+      await hegicPool.setHedgePool(aliceAddress)
+      const balanceBefore = await mockERC20.balanceOf(aliceAddress)
+      expect(balanceBefore).to.equal(BN.from(0))
+
+      await hegicPool.lock(BN.from(10000), BN.from(0))
+
+      const balanceAfter = await mockERC20.balanceOf(aliceAddress)
+      expect(balanceAfter).to.equal(BN.from(0))
     })
   })
 
@@ -349,21 +360,94 @@ describe("HegicPool", async () => {
       await expect(hegicPool.withdraw(BN.from(0))).to.be.reverted
     })
 
-    // it("should revert when the tranche is locked up", async () => {
-    //   await hegicPool.provideFrom(
-    //     ownerAddress,
-    //     BN.from(100000),
-    //     true,
-    //     BN.from(100000),
-    //   )
-    // tranche share - 10000000000000000000000000
-    // hedged balance - 100000
-    // hedged share - 10000000000000000000000000
+    it("should revert when the sender is not approved or the owner", async () => {
+      await expect(hegicPool.connect(signers[1]).withdraw(BN.from(0))).to.be
+        .reverted
+    })
 
-    //   await expect(hegicPool.withdraw(BN.from(0))).to.be.revertedWith(
-    //     "Pool: Withdrawal is locked up",
-    //   )
-    // })
+    it("should revert when the tranche is not in an open state", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+      await ethers.provider.send("evm_increaseTime", [
+        BN.from(2000000).toNumber(),
+      ])
+      await ethers.provider.send("evm_mine", [])
+      await expect(hegicPool.withdraw(BN.from(0)))
+      await expect(hegicPool.withdraw(BN.from(0))).to.be.reverted
+    })
+
+    it("should revert when the pool withdrawal is locked", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+
+      await expect(hegicPool.withdraw(BN.from(0))).to.be.revertedWith(
+        "Pool: Withdrawal is locked up",
+      )
+    })
+
+    it("should transfer tokens to the owner of the tranche when hedged", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+      await ethers.provider.send("evm_increaseTime", [
+        BN.from(2000000).toNumber(),
+      ])
+      await ethers.provider.send("evm_mine", [])
+
+      const balanceBefore = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
+      await hegicPool.withdraw(BN.from(0))
+      const balanceAfter = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
+    })
+
+    it("should transfer tokens to the owner of the tranche when unhedged", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        false,
+        BN.from(100000),
+      )
+      await ethers.provider.send("evm_increaseTime", [
+        BN.from(2000000).toNumber(),
+      ])
+      await ethers.provider.send("evm_mine", [])
+
+      const balanceBefore = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
+      await hegicPool.withdraw(BN.from(0))
+      const balanceAfter = await mockERC20.balanceOf(ownerAddress)
+      expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
+    })
+
+    it("should emit a Withdraw event with correct values", async () => {
+      await hegicPool.provideFrom(
+        ownerAddress,
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
+
+      await ethers.provider.send("evm_increaseTime", [
+        BN.from(2000000).toNumber(),
+      ])
+      await ethers.provider.send("evm_mine", [])
+
+      await expect(hegicPool.withdraw(BN.from(0)))
+        .to.emit(hegicPool, "Withdraw")
+        .withArgs(ownerAddress, BN.from(0))
+    })
   })
 
   describe("totalBalance", async () => {
