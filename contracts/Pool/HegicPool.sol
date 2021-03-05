@@ -246,11 +246,11 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
 
         t.state = TrancheState.Closed;
         if (t.hedged) {
-            amount = t.share.mul(hedgedShare).div(hedgedBalance);
+            amount = t.share.mul(hedgedBalance).div(hedgedShare);
             hedgedShare = hedgedShare.sub(t.share);
             hedgedBalance = hedgedBalance.sub(amount);
         } else {
-            amount = t.share.mul(unhedgedShare).div(unhedgedBalance);
+            amount = t.share.mul(unhedgedBalance).div(unhedgedShare);
             unhedgedShare = unhedgedShare.sub(t.share);
             unhedgedBalance = unhedgedBalance.sub(amount);
         }
