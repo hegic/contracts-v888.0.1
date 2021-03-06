@@ -11,7 +11,7 @@
     "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
     "lint": "npx solhint contracts/*.sol && npx eslint . && npx markdownlint --ignore node_modules **/*.md",
-    "format": "prettier --check \"contracts/**/*.sol\" \"test/*.ts\" \"**/*.md\" \"**/*.yml\"",
+    "format": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\" \"**/*.md\" \"**/*.yml\"",
     "test": "npx hardhat test",
     "coverage": "npm run build && npx hardhat coverage --temp artifacts --network coverage"
   },
