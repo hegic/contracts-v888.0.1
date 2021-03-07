@@ -142,7 +142,11 @@ contract PriceCalculator is IPriceCalculator, Ownable {
                     .div(PRICE_DECIMALS);
     }
 
-    function _priceModifier(uint256 amount, uint256 period) internal view returns (uint256 iv) {
+    function _priceModifier(uint256 amount, uint256 period)
+        internal
+        view
+        returns (uint256 iv)
+    {
         uint256 poolBalance = pool.totalBalance();
         require(poolBalance > 0, "Pool is empty");
 
@@ -150,13 +154,22 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         else if (period < 4 weeks) iv = impliedVolRate[1];
         else iv = impliedVolRate[2];
         iv = iv.mul(period.sqrt());
-        uint256 utilization = (pool.lockedAmount().add(amount)).mul(100e8).div(poolBalance);
+        uint256 utilization =
+            (pool.lockedAmount().add(amount)).mul(100e8).div(poolBalance);
         if (utilization > 40e8) {
-            uint256 percentAbove = ((pool.lockedAmount().add(amount)).mul(100e8).sub(poolBalance.mul(40e8))).div(amount.mul(100e8));
-            if (percentAbove > 1) {
-                percentAbove = 1;
-            }
-            iv += iv.mul(utilization.sub(40e8)).mul(utilizationRate).div(40e16).mul(percentAbove);
+            uint256 percentAbove =
+                (
+                    (pool.lockedAmount().add(amount)).mul(100e8).sub(
+                        poolBalance.mul(40e8)
+                    )
+                )
+                    .div(amount.mul(100e8));
+            if (percentAbove > 1) percentAbove = 1;
+            iv += iv
+                .mul(utilization.sub(40e8))
+                .mul(utilizationRate)
+                .div(40e16)
+                .mul(percentAbove);
         }
     }
 
