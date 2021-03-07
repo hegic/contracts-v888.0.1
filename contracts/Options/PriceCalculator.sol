@@ -128,7 +128,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         if (optionType == IHegicOptions.OptionType.Put)
             return
                 amount
-                    .mul(_priceModifier(period))
+                    .mul(_priceModifier(amount, period))
                     .mul(strike)
                     .div(PRICE_DECIMALS)
                     .div(PRICE_DECIMALS)
@@ -136,7 +136,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         else if (optionType == IHegicOptions.OptionType.Call)
             return
                 amount
-                    .mul(_priceModifier(period))
+                    .mul(_priceModifier(amount, period))
                     .mul(_currentPrice())
                     .div(strike)
                     .div(PRICE_DECIMALS);
