@@ -142,7 +142,10 @@ contract PriceCalculator is IPriceCalculator, Ownable {
                     .div(PRICE_DECIMALS);
     }
 
-    function _priceModifier(uint256 period) internal view returns (uint256 iv) {
+    function _priceModifier(
+        uint256 amount,
+        uint256 period
+    ) internal view returns (uint256 iv) {
         uint256 poolBalance = pool.totalBalance();
         require(poolBalance > 0, "Pool is empty");
 
