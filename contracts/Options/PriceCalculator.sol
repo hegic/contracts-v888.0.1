@@ -153,7 +153,9 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         uint256 utilization = (pool.lockedAmount().add(amount)).mul(100e8).div(poolBalance);
         if (utilization > 40e8) {
             uint256 percentAbove = ((pool.lockedAmount().add(amount)).mul(100e8).sub(poolBalance.mul(40e8))).div(amount.mul(100e8));
-            if (percentAbove > 1) percentAbove = 1;
+            if (percentAbove > 1) {
+                percentAbove = 1;
+            }
             iv += iv.mul(utilization.sub(40e8)).mul(utilizationRate).div(40e16).mul(percentAbove);
         }
     }
