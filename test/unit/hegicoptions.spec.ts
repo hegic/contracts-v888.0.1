@@ -15,7 +15,7 @@ import {TestAccounts} from "../helpers/testAccounts"
 chai.use(solidity)
 const {expect} = chai
 
-describe("HegicPool", async () => {
+describe("HegicOptions", async () => {
   let hegicPoolWBTC: HegicPool
   let hegicPoolUSDC: HegicPool
   let hegicStakingWBTC: HegicStaking
