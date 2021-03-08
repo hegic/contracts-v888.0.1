@@ -3,7 +3,7 @@ import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicPool} from "../../typechain/HegicPool"
-import {MockErc20} from "../../typechain/MockErc20"
+import {FakeWbtc} from "../../typechain/FakeWbtc"
 import {TestAccounts} from "../helpers/testAccounts"
 
 chai.use(solidity)
@@ -11,40 +11,30 @@ const {expect} = chai
 
 describe("HegicPool", async () => {
   let hegicPool: HegicPool
-  let mockERC20: MockErc20
+  let fakeWBTC: FakeWbtc
   let signers: Signer[]
   let accounts: TestAccounts
-  let mockERC20Address: string
   let hegicPoolAddress: string
-
-  const name = "Wrapped BTC"
-  const symbol = "WBTC"
-  const decimals = "8"
 
   beforeEach(async () => {
     signers = await ethers.getSigners()
     accounts = await new TestAccounts().initAccounts(signers)
 
-    const mockERC20Factory = await ethers.getContractFactory("MockERC20")
-    mockERC20 = (await mockERC20Factory.deploy(
-      name,
-      symbol,
-      decimals,
-    )) as MockErc20
-    await mockERC20.deployed()
-    await mockERC20.mint(accounts.owner.address, BN.from(10).pow(20))
-    mockERC20Address = await mockERC20.address
+    const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
+    fakeWBTC = (await fakeWbtcFactory.deploy()) as FakeWbtc
+    await fakeWBTC.deployed()
+    await fakeWBTC.mintTo(accounts.owner.address, BN.from(10).pow(20))
 
     const hegicPoolFactory = await ethers.getContractFactory("HegicPool")
     hegicPool = (await hegicPoolFactory.deploy(
-      mockERC20Address,
-      name,
-      symbol,
+      await fakeWBTC.address,
+      "writeWBTC",
+      "wWBTC",
     )) as HegicPool
     await hegicPool.deployed()
     hegicPoolAddress = await hegicPool.address
 
-    await mockERC20
+    await fakeWBTC
       .connect(accounts.owner.signer)
       .approve(hegicPoolAddress, BN.from(10).pow(20))
   })
@@ -62,7 +52,7 @@ describe("HegicPool", async () => {
       expect(await hegicPool.hedgePool()).to.be.eq(
         BN.from(accounts.owner.address),
       )
-      expect(await hegicPool.token()).to.be.eq(mockERC20Address)
+      expect(await hegicPool.token()).to.be.eq(await fakeWBTC.address)
     })
   })
 
@@ -148,12 +138,12 @@ describe("HegicPool", async () => {
 
     xit("should transfer the hedge fee to the hedge pool", async () => {
       await hegicPool.setHedgePool(accounts.user1.address)
-      const balanceBefore = await mockERC20.balanceOf(accounts.user1.address)
+      const balanceBefore = await fakeWBTC.balanceOf(accounts.user1.address)
       expect(balanceBefore).to.equal(BN.from(0))
 
       await hegicPool.lock(BN.from(10000), BN.from(0))
 
-      const balanceAfter = await mockERC20.balanceOf(accounts.user1.address)
+      const balanceAfter = await fakeWBTC.balanceOf(accounts.user1.address)
       expect(balanceAfter).to.equal(BN.from(0))
     })
   })
@@ -242,17 +232,17 @@ describe("HegicPool", async () => {
     })
 
     it("should transfer tokens correctly", async () => {
-      const balanceBefore = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceBefore = await fakeWBTC.balanceOf(accounts.owner.address)
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.lock(BN.from(10000), BN.from(0))
       await hegicPool.send(BN.from(0), accounts.owner.address, BN.from(10000))
-      const balanceAfter = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceAfter = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
 
     it("should transfer the locked amount if amount is greater", async () => {
-      const balanceBefore = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceBefore = await fakeWBTC.balanceOf(accounts.owner.address)
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.lock(BN.from(10000), BN.from(0))
@@ -261,7 +251,7 @@ describe("HegicPool", async () => {
         accounts.owner.address,
         BN.from(8888888888),
       )
-      const balanceAfter = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceAfter = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
 
@@ -432,10 +422,10 @@ describe("HegicPool", async () => {
       ])
       await ethers.provider.send("evm_mine", [])
 
-      const balanceBefore = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceBefore = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.withdraw(BN.from(0))
-      const balanceAfter = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceAfter = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
     })
 
@@ -451,10 +441,10 @@ describe("HegicPool", async () => {
       ])
       await ethers.provider.send("evm_mine", [])
 
-      const balanceBefore = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceBefore = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.withdraw(BN.from(0))
-      const balanceAfter = await mockERC20.balanceOf(accounts.owner.address)
+      const balanceAfter = await fakeWBTC.balanceOf(accounts.owner.address)
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
     })
 
