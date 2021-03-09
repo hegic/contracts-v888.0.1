@@ -20,7 +20,7 @@ describe("HegicPool", async () => {
     const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
     fakeWBTC = (await fakeWbtcFactory.deploy()) as FakeWbtc
     await fakeWBTC.deployed()
-    await fakeWBTC.mintTo(await deployer.getAddress(), BN.from(10).pow(20))
+    await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
 
     const hegicPoolFactory = await ethers.getContractFactory("HegicPool")
     hegicPool = (await hegicPoolFactory.deploy(
@@ -101,12 +101,14 @@ describe("HegicPool", async () => {
 
   describe("lock", async () => {
     beforeEach(async () => {
-      await hegicPool.provideFrom(
-        await alice.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await alice.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
     })
     it("should revert if the caller is not the owner", async () => {
       await expect(
@@ -148,12 +150,14 @@ describe("HegicPool", async () => {
 
   describe("unlock", async () => {
     beforeEach(async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await alice.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
     })
     it("should revert if the caller is not the owner", async () => {
       await expect(
@@ -200,12 +204,14 @@ describe("HegicPool", async () => {
 
   describe("send", async () => {
     beforeEach(async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await alice.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
     })
 
     it("should revert if to is zero address", async () => {
@@ -238,87 +244,87 @@ describe("HegicPool", async () => {
     })
 
     it("should transfer tokens correctly", async () => {
-      const balanceBefore = await fakeWBTC.balanceOf(
-        await deployer.getAddress(),
-      )
+      const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.lock(BN.from(10000), BN.from(0))
-      await hegicPool.send(
-        BN.from(0),
-        await deployer.getAddress(),
-        BN.from(10000),
-      )
-      const balanceAfter = await fakeWBTC.balanceOf(await deployer.getAddress())
+      await hegicPool.send(BN.from(0), await alice.getAddress(), BN.from(10000))
+      const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
 
     it("should transfer the locked amount if amount is greater", async () => {
-      const balanceBefore = await fakeWBTC.balanceOf(
-        await deployer.getAddress(),
-      )
+      const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
       await hegicPool.lock(BN.from(10000), BN.from(0))
       await hegicPool.send(
         BN.from(0),
-        await deployer.getAddress(),
+        await alice.getAddress(),
         BN.from(8888888888),
       )
-      const balanceAfter = await fakeWBTC.balanceOf(await deployer.getAddress())
+      const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
     })
 
-    it("should emit a Profit event with correct data", async () => {
-      await hegicPool.lock(BN.from(10000), BN.from(10))
+    it("should emit a Loss event with correct data", async () => {
+      await hegicPool.lock(BN.from(10000), BN.from(0))
       await expect(
-        hegicPool.send(BN.from(0), await deployer.getAddress(), BN.from(1)),
+        hegicPool.send(BN.from(0), await alice.getAddress(), BN.from(1)),
       )
-        .to.emit(hegicPool, "Profit")
+        .to.emit(hegicPool, "Loss")
         .withArgs(BN.from(0), BN.from(1), BN.from(0))
     })
   })
 
   describe("provideFrom", async () => {
     it("should supply funds to the pool", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
       expect(await hegicPool.availableBalance()).to.eq(BN.from(100000))
     })
 
     it("should revert if the mintShare is too large", async () => {
       await expect(
-        hegicPool.provideFrom(
-          await deployer.getAddress(),
-          BN.from(10),
-          true,
-          BN.from(10).pow(50),
-        ),
+        hegicPool
+          .connect(alice)
+          .provideFrom(
+            await deployer.getAddress(),
+            BN.from(10),
+            true,
+            BN.from(10).pow(50),
+          ),
       ).to.be.revertedWith("Pool: Mint limit is too large")
     })
 
     it("should revert if the mint limit is too large", async () => {
       await expect(
-        hegicPool.provideFrom(
-          await deployer.getAddress(),
-          BN.from(0),
-          true,
-          BN.from(0),
-        ),
+        hegicPool
+          .connect(alice)
+          .provideFrom(
+            await deployer.getAddress(),
+            BN.from(0),
+            true,
+            BN.from(0),
+          ),
       ).to.be.revertedWith("Pool: Amount is too small")
     })
 
     it("should set the Tranche values correctly", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
       const tranche = await hegicPool.tranches(BN.from(0))
       // Set by INITIAL_RATE
       expect(tranche.share).to.eq(BN.from(10).pow(25))
@@ -328,12 +334,14 @@ describe("HegicPool", async () => {
     })
 
     it("should set the Tranche values correctly when unhedged", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        false,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          false,
+          BN.from(100000),
+        )
       const tranche = await hegicPool.tranches(BN.from(0))
       // Set by INITIAL_RATE
       expect(tranche.share).to.eq(BN.from(10).pow(25))
@@ -344,12 +352,14 @@ describe("HegicPool", async () => {
 
     it("should emit a Provide event with correct values", async () => {
       await expect(
-        hegicPool.provideFrom(
-          await deployer.getAddress(),
-          BN.from(100000),
-          true,
-          BN.from(100000),
-        ),
+        hegicPool
+          .connect(alice)
+          .provideFrom(
+            await deployer.getAddress(),
+            BN.from(100000),
+            true,
+            BN.from(100000),
+          ),
       )
         .to.emit(hegicPool, "Provide")
         .withArgs(
@@ -362,12 +372,14 @@ describe("HegicPool", async () => {
 
     it("should emit a Provide event with correct values when unhedged", async () => {
       await expect(
-        hegicPool.provideFrom(
-          await deployer.getAddress(),
-          BN.from(100000),
-          false,
-          BN.from(100000),
-        ),
+        hegicPool
+          .connect(alice)
+          .provideFrom(
+            await deployer.getAddress(),
+            BN.from(100000),
+            false,
+            BN.from(100000),
+          ),
       )
         .to.emit(hegicPool, "Provide")
         .withArgs(
@@ -395,12 +407,14 @@ describe("HegicPool", async () => {
     })
 
     it("should revert when the tranche is not in an open state", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
       await ethers.provider.send("evm_increaseTime", [
         BN.from(2000000).toNumber(),
       ])
@@ -410,12 +424,14 @@ describe("HegicPool", async () => {
     })
 
     it("should revert when the pool withdrawal is locked", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
 
       await expect(hegicPool.withdraw(BN.from(0))).to.be.revertedWith(
         "Pool: Withdrawal is locked up",
@@ -423,54 +439,56 @@ describe("HegicPool", async () => {
     })
 
     it("should transfer tokens to the owner of the tranche when hedged", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await alice.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
       await ethers.provider.send("evm_increaseTime", [
         BN.from(2000000).toNumber(),
       ])
       await ethers.provider.send("evm_mine", [])
 
-      const balanceBefore = await fakeWBTC.balanceOf(
-        await deployer.getAddress(),
-      )
+      const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
-      await hegicPool.withdraw(BN.from(0))
-      const balanceAfter = await fakeWBTC.balanceOf(await deployer.getAddress())
+      await hegicPool.connect(alice).withdraw(BN.from(0))
+      const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
     })
 
     it("should transfer tokens to the owner of the tranche when unhedged", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        false,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await alice.getAddress(),
+          BN.from(100000),
+          false,
+          BN.from(100000),
+        )
       await ethers.provider.send("evm_increaseTime", [
         BN.from(2000000).toNumber(),
       ])
       await ethers.provider.send("evm_mine", [])
 
-      const balanceBefore = await fakeWBTC.balanceOf(
-        await deployer.getAddress(),
-      )
+      const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
-      await hegicPool.withdraw(BN.from(0))
-      const balanceAfter = await fakeWBTC.balanceOf(await deployer.getAddress())
+      await hegicPool.connect(alice).withdraw(BN.from(0))
+      const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(100000)))
     })
 
     it("should emit a Withdraw event with correct values", async () => {
-      await hegicPool.provideFrom(
-        await deployer.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      await hegicPool
+        .connect(alice)
+        .provideFrom(
+          await deployer.getAddress(),
+          BN.from(100000),
+          true,
+          BN.from(100000),
+        )
 
       await ethers.provider.send("evm_increaseTime", [
         BN.from(2000000).toNumber(),
