@@ -196,10 +196,19 @@ describe("HegicStaking", async () => {
   })
   describe("profitOf", async () => {
     it("return the profit for an account", async () => {
+      const amount = await ethers.utils.parseUnits(
+        "10000",
+        await fakeWBTC.decimals(),
+      )
       await hegicStaking.connect(alice).buy(BN.from(1))
+      await hegicStaking.connect(bob).buy(BN.from(1))
+      await hegicStaking.connect(alice).sendProfit(amount)
       const profit = await hegicStaking
         .connect(alice)
         .profitOf(await alice.getAddress())
+      expect(profit).to.be.eq(
+        await ethers.utils.parseUnits("5000", await fakeWBTC.decimals()),
+      )
     })
   })
   describe("sendProfit", async () => {
