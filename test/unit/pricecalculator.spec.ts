@@ -6,7 +6,6 @@ import {HegicPool} from "../../typechain/HegicPool"
 import {FakeWbtc} from "../../typechain/FakeWbtc"
 import {PriceCalculator} from "../../typechain/PriceCalculator"
 import {FakePriceProvider} from "../../typechain/FakePriceProvider"
-import {TestAccounts} from "../helpers/testAccounts"
 
 chai.use(solidity)
 const {expect} = chai
@@ -16,55 +15,56 @@ describe("PriceCalculator", async () => {
   let priceCalculator: PriceCalculator
   let fakeWBTC: FakeWbtc
   let fakePriceProvider: FakePriceProvider
-  let signers: Signer[]
-  let accounts: TestAccounts
+  let deployer: Signer
+  let alice: Signer
 
   beforeEach(async () => {
-    signers = await ethers.getSigners()
-    accounts = await new TestAccounts().initAccounts(signers)
+    ;[deployer, alice] = await ethers.getSigners()
 
     const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWbtcFactory.deploy()) as FakeWbtc
+    fakeWBTC = (await fakeWbtcFactory.connect(deployer).deploy()) as FakeWbtc
     await fakeWBTC.deployed()
-    await fakeWBTC.mintTo(accounts.owner.address, BN.from(10).pow(20))
+    await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
 
     const fakePriceProviderFactory = await ethers.getContractFactory(
       "FakePriceProvider",
     )
-    fakePriceProvider = (await fakePriceProviderFactory.deploy(
-      BN.from(50000),
-    )) as FakePriceProvider
+    fakePriceProvider = (await fakePriceProviderFactory
+      .connect(deployer)
+      .deploy(BN.from(50000))) as FakePriceProvider
     await fakePriceProvider.deployed()
 
     const hegicPoolWBTCFactory = await ethers.getContractFactory("HegicPool")
-    hegicPoolWBTC = (await hegicPoolWBTCFactory.deploy(
-      await fakeWBTC.address,
-      "writeWBTC",
-      "wWBTC",
-    )) as HegicPool
+    hegicPoolWBTC = (await hegicPoolWBTCFactory
+      .connect(deployer)
+      .deploy(await fakeWBTC.address, "writeWBTC", "wWBTC")) as HegicPool
     await hegicPoolWBTC.deployed()
 
     const priceCalculatorFactory = await ethers.getContractFactory(
       "PriceCalculator",
     )
-    priceCalculator = (await priceCalculatorFactory.deploy(
-      [9000, 10000, 20000],
-      await fakePriceProvider.address,
-      await hegicPoolWBTC.address,
-      6,
-    )) as PriceCalculator
+    priceCalculator = (await priceCalculatorFactory
+      .connect(deployer)
+      .deploy(
+        [9000, 10000, 20000],
+        await fakePriceProvider.address,
+        await hegicPoolWBTC.address,
+        6,
+      )) as PriceCalculator
     await priceCalculator.deployed()
 
     await fakeWBTC
-      .connect(accounts.owner.signer)
+      .connect(alice)
       .approve(await hegicPoolWBTC.address, BN.from(10).pow(20))
 
-    await hegicPoolWBTC.provideFrom(
-      accounts.owner.address,
-      BN.from(100000),
-      true,
-      BN.from(100000),
-    )
+    await hegicPoolWBTC
+      .connect(alice)
+      .provideFrom(
+        await alice.getAddress(),
+        BN.from(100000),
+        true,
+        BN.from(100000),
+      )
   })
 
   describe("constructor & settings", async () => {
@@ -90,7 +90,7 @@ describe("PriceCalculator", async () => {
       it("should revert if the caller is not the owner", async () => {
         await expect(
           priceCalculator
-            .connect(accounts.user1.signer)
+            .connect(alice)
             .setImpliedVolRate([
               BN.from(10000),
               BN.from(11000),
