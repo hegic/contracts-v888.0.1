@@ -31,10 +31,6 @@ describe("HegicPool", async () => {
     await hegicPool.deployed()
 
     await fakeWBTC
-      .connect(deployer)
-      .approve(await hegicPool.address, BN.from(10).pow(20))
-
-    await fakeWBTC
       .connect(alice)
       .approve(await hegicPool.address, BN.from(10).pow(20))
   })
