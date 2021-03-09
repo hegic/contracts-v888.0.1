@@ -13,7 +13,6 @@ describe("HegicPool", async () => {
   let fakeWBTC: FakeWbtc
   let deployer: Signer
   let alice: Signer
-  let hegicPoolAddress: string
 
   beforeEach(async () => {
     ;[deployer, alice] = await ethers.getSigners()
@@ -30,13 +29,14 @@ describe("HegicPool", async () => {
       "wWBTC",
     )) as HegicPool
     await hegicPool.deployed()
-    hegicPoolAddress = await hegicPool.address
 
     await fakeWBTC
       .connect(deployer)
-      .approve(hegicPoolAddress, BN.from(10).pow(20))
+      .approve(await hegicPool.address, BN.from(10).pow(20))
 
-    await fakeWBTC.connect(alice).approve(hegicPoolAddress, BN.from(10).pow(20))
+    await fakeWBTC
+      .connect(alice)
+      .approve(await hegicPool.address, BN.from(10).pow(20))
   })
 
   describe("constructor & settings", async () => {
