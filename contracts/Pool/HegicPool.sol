@@ -281,7 +281,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
     ) internal view override {
         require(
             tranches[id].state == TrancheState.Open,
-            "Pool: Closed transhes are can not be transferred"
+            "Pool: Closed tranches can not be transferred"
         );
     }
 }
