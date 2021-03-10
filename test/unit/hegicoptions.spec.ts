@@ -10,7 +10,6 @@ import {FakeHegic} from "../../typechain/FakeHegic"
 import {FakeUsdc} from "../../typechain/FakeUsdc"
 import {FakeWbtc} from "../../typechain/FakeWbtc"
 import {FakePriceProvider} from "../../typechain/FakePriceProvider"
-import {TestAccounts} from "../helpers/testAccounts"
 
 chai.use(solidity)
 const {expect} = chai
@@ -26,34 +25,43 @@ describe("HegicOptions", async () => {
   let fakeUSDC: FakeUsdc
   let fakeWBTC: FakeWbtc
   let fakePriceProvider: FakePriceProvider
-  let signers: Signer[]
-  let accounts: TestAccounts
+  let deployer: Signer
+  let alice: Signer
+  let bob: Signer
 
   beforeEach(async () => {
-    signers = await ethers.getSigners()
-    accounts = await new TestAccounts().initAccounts(signers)
+    ;[deployer, alice, bob] = await ethers.getSigners()
 
     const fakeHegicFactory = await ethers.getContractFactory("FakeHEGIC")
-    fakeHegic = (await fakeHegicFactory.deploy()) as FakeHegic
+    fakeHegic = (await fakeHegicFactory.connect(deployer).deploy()) as FakeHegic
     await fakeHegic.deployed()
-    await fakeHegic.mintTo(accounts.owner.address, BN.from(10).pow(20))
+    await fakeHegic.mintTo(
+      await alice.getAddress(),
+      await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
+    )
 
     const fakeUsdcFactory = await ethers.getContractFactory("FakeUSDC")
-    fakeUSDC = (await fakeUsdcFactory.deploy()) as FakeUsdc
+    fakeUSDC = (await fakeUsdcFactory.connect(deployer).deploy()) as FakeUsdc
     await fakeUSDC.deployed()
-    await fakeUSDC.mintTo(accounts.owner.address, BN.from(10).pow(20))
+    await fakeUSDC.mintTo(
+      await alice.getAddress(),
+      await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+    )
 
     const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWbtcFactory.deploy()) as FakeWbtc
+    fakeWBTC = (await fakeWbtcFactory.connect(deployer).deploy()) as FakeWbtc
     await fakeWBTC.deployed()
-    await fakeWBTC.mintTo(accounts.owner.address, BN.from(10).pow(20))
+    await fakeWBTC.mintTo(
+      await alice.getAddress(),
+      await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+    )
 
     const fakePriceProviderFactory = await ethers.getContractFactory(
       "FakePriceProvider",
     )
-    fakePriceProvider = (await fakePriceProviderFactory.deploy(
-      BN.from(50000),
-    )) as FakePriceProvider
+    fakePriceProvider = (await fakePriceProviderFactory
+      .connect(deployer)
+      .deploy(BN.from(50000))) as FakePriceProvider
     await fakePriceProvider.deployed()
 
     const hegicPoolWBTCFactory = await ethers.getContractFactory("HegicPool")
@@ -65,84 +73,100 @@ describe("HegicOptions", async () => {
     await hegicPoolWBTC.deployed()
 
     const hegicPoolUSDCFactory = await ethers.getContractFactory("HegicPool")
-    hegicPoolUSDC = (await hegicPoolUSDCFactory.deploy(
-      await fakeUSDC.address,
-      "writeUSDC",
-      "wUSDC",
-    )) as HegicPool
+    hegicPoolUSDC = (await hegicPoolUSDCFactory
+      .connect(deployer)
+      .deploy(await fakeUSDC.address, "writeUSDC", "wUSDC")) as HegicPool
     await hegicPoolUSDC.deployed()
 
     const hegicStakingWBTCFactory = await ethers.getContractFactory(
       "HegicStaking",
     )
-    hegicStakingWBTC = (await hegicStakingWBTCFactory.deploy(
-      await fakeHegic.address,
-      await fakeWBTC.address,
-      "Hegic WBTC Lot",
-      "hlWBTC",
-    )) as HegicStaking
+    hegicStakingWBTC = (await hegicStakingWBTCFactory
+      .connect(deployer)
+      .deploy(
+        await fakeHegic.address,
+        await fakeWBTC.address,
+        "Hegic WBTC Lot",
+        "hlWBTC",
+      )) as HegicStaking
     await hegicStakingWBTC.deployed()
 
     const hegicStakingUSDCFactory = await ethers.getContractFactory(
       "HegicStaking",
     )
-    hegicStakingUSDC = (await hegicStakingUSDCFactory.deploy(
-      await fakeHegic.address,
-      await fakeUSDC.address,
-      "Hegic USDC Lot",
-      "hlUSDC",
-    )) as HegicStaking
+    hegicStakingUSDC = (await hegicStakingUSDCFactory
+      .connect(deployer)
+      .deploy(
+        await fakeHegic.address,
+        await fakeUSDC.address,
+        "Hegic USDC Lot",
+        "hlUSDC",
+      )) as HegicStaking
     await hegicStakingUSDC.deployed()
 
     const priceCalculatorFactory = await ethers.getContractFactory(
       "PriceCalculator",
     )
-    priceCalculator = (await priceCalculatorFactory.deploy(
-      [9000, 10000, 20000],
-      await fakePriceProvider.address,
-      await hegicPoolWBTC.address,
-      6,
-    )) as PriceCalculator
+    priceCalculator = (await priceCalculatorFactory
+      .connect(deployer)
+      .deploy(
+        [9000, 10000, 20000],
+        await fakePriceProvider.address,
+        await hegicPoolWBTC.address,
+        6,
+      )) as PriceCalculator
     await priceCalculator.deployed()
 
     const hegicOptionsFactory = await ethers.getContractFactory("HegicOptions")
-    hegicOptions = (await hegicOptionsFactory.deploy(
-      await fakePriceProvider.address,
-      await hegicPoolWBTC.address,
-      await hegicPoolUSDC.address,
-      await hegicStakingUSDC.address,
-      await hegicStakingWBTC.address,
-      await fakeWBTC.address,
-      await fakeUSDC.address,
-      "HegicOptions WBTC",
-      "HO_WBTC",
-    )) as HegicOptions
+    hegicOptions = (await hegicOptionsFactory
+      .connect(deployer)
+      .deploy(
+        await fakePriceProvider.address,
+        await hegicPoolWBTC.address,
+        await hegicPoolUSDC.address,
+        await hegicStakingUSDC.address,
+        await hegicStakingWBTC.address,
+        await fakeWBTC.address,
+        await fakeUSDC.address,
+        "HegicOptions WBTC",
+        "HO_WBTC",
+      )) as HegicOptions
     await hegicOptions.deployed()
 
     await hegicPoolWBTC.transferOwnership(await hegicOptions.address)
     await hegicPoolUSDC.transferOwnership(await hegicOptions.address)
 
     await fakeWBTC
-      .connect(accounts.owner.signer)
-      .approve(await hegicPoolWBTC.address, BN.from(10).pow(20))
+      .connect(alice)
+      .approve(
+        await hegicPoolWBTC.address,
+        await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+      )
 
-    await hegicPoolWBTC.provideFrom(
-      accounts.owner.address,
-      BN.from(100000),
-      true,
-      BN.from(100000),
-    )
+    await hegicPoolWBTC
+      .connect(alice)
+      .provideFrom(
+        await alice.getAddress(),
+        await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+        true,
+        await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+      )
 
     await fakeUSDC
-      .connect(accounts.owner.signer)
-      .approve(await hegicPoolUSDC.address, BN.from(10).pow(20))
+      .connect(alice)
+      .approve(
+        await hegicPoolUSDC.address,
+        await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+      )
 
-    await hegicPoolUSDC.provideFrom(
-      accounts.owner.address,
-      BN.from(100000),
-      true,
-      BN.from(100000),
-    )
+    await hegicPoolUSDC
+      .connect(alice)
+      .provideFrom(
+        await alice.getAddress(),
+        await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+        true,
+        await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+      )
   })
 
   describe("constructor & settings", async () => {
@@ -169,7 +193,7 @@ describe("HegicOptions", async () => {
   describe("transferPoolsOwnership", async () => {
     it("should revert if the caller is not the owner", async () => {
       await expect(
-        hegicOptions.connect(accounts.user1.signer).transferPoolsOwnership(),
+        hegicOptions.connect(alice).transferPoolsOwnership(),
       ).to.be.revertedWith("caller is not the owner")
     })
 
@@ -193,10 +217,10 @@ describe("HegicOptions", async () => {
     it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicOptions
-          .connect(accounts.user1.signer)
+          .connect(alice)
           .updateSettlementFeeRecipients(
-            accounts.user2.address,
-            accounts.user3.address,
+            await alice.getAddress(),
+            await bob.getAddress(),
           ),
       ).to.be.revertedWith("caller is not the owner")
     })
@@ -205,7 +229,7 @@ describe("HegicOptions", async () => {
       await expect(
         hegicOptions.updateSettlementFeeRecipients(
           ethers.constants.AddressZero,
-          accounts.user3.address,
+          await bob.getAddress(),
         ),
       ).to.be.reverted
     })
@@ -213,7 +237,7 @@ describe("HegicOptions", async () => {
     it("should revert if zero address is given for recipientCall", async () => {
       await expect(
         hegicOptions.updateSettlementFeeRecipients(
-          accounts.user2.address,
+          await alice.getAddress(),
           ethers.constants.AddressZero,
         ),
       ).to.be.reverted
@@ -221,16 +245,16 @@ describe("HegicOptions", async () => {
 
     it("should update the settlement fee recipients", async () => {
       await hegicOptions.updateSettlementFeeRecipients(
-        accounts.user2.address,
-        accounts.user3.address,
+        await alice.getAddress(),
+        await bob.getAddress(),
       )
 
       expect(await hegicOptions.settlementFeeRecipient(BN.from(1))).to.eq(
-        accounts.user2.address,
+        await alice.getAddress(),
       )
 
       expect(await hegicOptions.settlementFeeRecipient(BN.from(2))).to.eq(
-        accounts.user3.address,
+        await bob.getAddress(),
       )
     })
   })
@@ -239,7 +263,7 @@ describe("HegicOptions", async () => {
     it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicOptions
-          .connect(accounts.user1.signer)
+          .connect(alice)
           .updatePriceCalculator(await priceCalculator.address),
       ).to.be.revertedWith("caller is not the owner")
     })
@@ -257,29 +281,35 @@ describe("HegicOptions", async () => {
     // TODO test line 130
     it("should revert if the strike is less than 1 day", async () => {
       await expect(
-        hegicOptions.createFor(accounts.user1.address, 1, 1, 1, 1),
+        hegicOptions.createFor(await alice.getAddress(), 1, 1, 1, 1),
       ).to.be.revertedWith("Period is too short")
     })
     it("should revert if the strike is greater than 12 weeks", async () => {
       // Test for 13 weeks
       await expect(
-        hegicOptions.createFor(accounts.user1.address, 7862400, 1, 1, 1),
+        hegicOptions.createFor(await alice.getAddress(), 7862400, 1, 1, 1),
       ).to.be.revertedWith("Period is too long")
     })
     it("should revert if the option type is not a call or put", async () => {
       await expect(
-        hegicOptions.createFor(accounts.user1.address, 1209600, 1, 1, 0),
+        hegicOptions.createFor(await alice.getAddress(), 1209600, 1, 1, 0),
       ).to.be.revertedWith("Wrong option type")
     })
     it("should set the strike to the current price if 0 is given", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 0, 1)
+      await hegicOptions.createFor(await alice.getAddress(), 1209600, 1, 0, 1)
       const option = await hegicOptions.options(BN.from(0))
       expect(option.strike).to.eq(BN.from(50000))
     })
     it("should create a put correctly", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
       const option = await hegicOptions.options(BN.from(0))
       expect(option.state).to.eq(BN.from(1))
       expect(option.strike).to.eq(BN.from(50000))
@@ -292,7 +322,13 @@ describe("HegicOptions", async () => {
 
     it("should create a call correctly", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 2)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        2,
+      )
       const option = await hegicOptions.options(BN.from(0))
       expect(option.state).to.eq(BN.from(1))
       expect(option.strike).to.eq(BN.from(50000))
@@ -307,50 +343,74 @@ describe("HegicOptions", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
 
       await expect(
-        hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 2),
+        hegicOptions.createFor(await alice.getAddress(), 1209600, 1, 50000, 2),
       )
         .to.emit(hegicOptions, "Create")
-        .withArgs(BN.from(0), accounts.owner.address, BN.from(0), BN.from(0))
+        .withArgs(BN.from(0), await alice.getAddress(), BN.from(0), BN.from(0))
     })
   })
 
   describe("exercise", async () => {
     it("should revert if the option exerciser is not approved or the owner", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
 
       await expect(
-        hegicOptions.connect(accounts.user1.signer).exercise(BN.from(0)),
+        hegicOptions.connect(bob).exercise(BN.from(0)),
       ).to.be.revertedWith("msg.sender can't exercise this option")
     })
 
     it("should revert if the option has expired", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
       // Move forward 360 days
       await ethers.provider.send("evm_increaseTime", [
         BN.from(31104000).toNumber(),
       ])
       await ethers.provider.send("evm_mine", [])
 
-      await expect(hegicOptions.exercise(BN.from(0))).to.be.revertedWith(
-        "Option has expired",
-      )
+      await expect(
+        hegicOptions.connect(alice).exercise(BN.from(0)),
+      ).to.be.revertedWith("Option has expired")
     })
 
     it("should revert if the option is in the wrong state", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
-      await expect(hegicOptions.exercise(BN.from(0)))
-      await expect(hegicOptions.exercise(BN.from(0))).to.be.revertedWith(
-        "Wrong state",
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
       )
+      await expect(hegicOptions.connect(alice).exercise(BN.from(0)))
+      await expect(
+        hegicOptions.connect(alice).exercise(BN.from(0)),
+      ).to.be.revertedWith("Wrong state")
     })
 
     it("should set the option state to exercised", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
-      await expect(hegicOptions.exercise(BN.from(0)))
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
+      await expect(hegicOptions.connect(alice).exercise(BN.from(0)))
       const option = await hegicOptions.options(BN.from(0))
       expect(option.state).to.eq(BN.from(2))
     })
@@ -359,9 +419,15 @@ describe("HegicOptions", async () => {
 
     it("should emit a Exercise event with correct values", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
 
-      await expect(hegicOptions.exercise(BN.from(0)))
+      await expect(hegicOptions.connect(alice).exercise(BN.from(0)))
         .to.emit(hegicOptions, "Exercise")
         .withArgs(BN.from(0), BN.from(0))
     })
@@ -370,7 +436,13 @@ describe("HegicOptions", async () => {
   describe("unlock", async () => {
     it("should revert if the option has not expired", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
 
       await expect(hegicOptions.unlock(BN.from(0))).to.be.revertedWith(
         "Option has not expired yet",
@@ -378,7 +450,13 @@ describe("HegicOptions", async () => {
     })
     it("should revert if the option is not active", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
       // Move forward 360 days
       await ethers.provider.send("evm_increaseTime", [
         BN.from(31104000).toNumber(),
@@ -391,7 +469,13 @@ describe("HegicOptions", async () => {
     })
     it("should set the option state to Expired", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
       // Move forward 360 days
       await ethers.provider.send("evm_increaseTime", [
         BN.from(31104000).toNumber(),
@@ -404,7 +488,13 @@ describe("HegicOptions", async () => {
     xit("should unlock liquidity from the pool", async () => {})
     it("should emit an Expire event with correct values", async () => {
       await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-      await hegicOptions.createFor(accounts.owner.address, 1209600, 1, 50000, 1)
+      await hegicOptions.createFor(
+        await alice.getAddress(),
+        1209600,
+        1,
+        50000,
+        1,
+      )
       // Move forward 360 days
       await ethers.provider.send("evm_increaseTime", [
         BN.from(31104000).toNumber(),
