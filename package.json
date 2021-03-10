@@ -13,7 +13,7 @@
     "lint": "npx solhint contracts/*.sol && npx eslint . && npx markdownlint --ignore node_modules **/*.md",
     "format": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\" \"**/*.md\" \"**/*.yml\"",
     "test": "npx hardhat test",
-    "coverage": "npm run build && npx hardhat coverage --temp artifacts --network coverage"
+    "coverage": "npm run build && npx hardhat coverage"
   },
   "author": "",
   "license": "GPLv3",
@@ -47,7 +47,7 @@
     "hardhat-typechain": "^0.3.3",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.3",
-    "solidity-coverage": "^0.7.14",
+    "solidity-coverage": "^0.7.16",
     "ts-generator": "^0.1.1",
     "ts-node": "^9.1.1",
     "typechain": "^3.0.0",
