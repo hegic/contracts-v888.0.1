@@ -136,10 +136,7 @@ describe("HegicRewards", async () => {
 
     await fakeWBTC
       .connect(alice)
-      .approve(
-        await hegicPoolWBTC.address,
-        await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
-      )
+      .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)
 
     await hegicPoolWBTC
       .connect(alice)
@@ -152,10 +149,7 @@ describe("HegicRewards", async () => {
 
     await fakeUSDC
       .connect(alice)
-      .approve(
-        await hegicPoolUSDC.address,
-        await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
-      )
+      .approve(await hegicPoolUSDC.address, await ethers.constants.MaxUint256)
 
     await hegicPoolUSDC
       .connect(alice)

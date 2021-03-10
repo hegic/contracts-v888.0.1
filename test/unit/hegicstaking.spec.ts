@@ -53,24 +53,15 @@ describe("HegicStaking", async () => {
 
     await fakeHegic
       .connect(alice)
-      .approve(
-        await hegicStaking.address,
-        await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
-      )
+      .approve(await hegicStaking.address, await ethers.constants.MaxUint256)
 
     await fakeHegic
       .connect(bob)
-      .approve(
-        await hegicStaking.address,
-        await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
-      )
+      .approve(await hegicStaking.address, await ethers.constants.MaxUint256)
 
     await fakeWBTC
       .connect(alice)
-      .approve(
-        await hegicStaking.address,
-        await ethers.utils.parseUnits("10000", await fakeHegic.decimals()),
-      )
+      .approve(await hegicStaking.address, await ethers.constants.MaxUint256)
   })
 
   describe("constructor & settings", async () => {

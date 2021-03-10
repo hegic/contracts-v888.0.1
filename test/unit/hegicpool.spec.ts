@@ -32,7 +32,7 @@ describe("HegicPool", async () => {
 
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicPool.address, BN.from(10).pow(20))
+      .approve(await hegicPool.address, await ethers.constants.MaxUint256)
   })
 
   describe("constructor & settings", async () => {
