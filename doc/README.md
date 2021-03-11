@@ -8,5 +8,10 @@
 
 ![Exercising an option][2]
 
+## Staking
+
+![Staking HEGIC][2]
+
 [1]: buy.png
 [2]: exercise.png
+[2]: staking.png

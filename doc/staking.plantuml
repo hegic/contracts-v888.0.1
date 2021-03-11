@@ -1,0 +1,28 @@
+@startuml
+
+title Staking
+participant Alice
+participant HegicOptions
+participant PriceCalculator
+participant PriceProvider
+participant HegicPool
+participant HegicRewards
+participant HegicStaking
+
+group Buying a lot
+Alice --> HegicStaking: buy 888,000 HEGIC
+Alice <-- HegicStaking: buy 1 hlETH/hlBTC
+end
+group Claiming profit
+Alice --> HegicStaking: claimProfit
+Alice <-- HegicStaking: Profit as ETC or WBTC
+end
+group Selling a lot
+Alice --> HegicStaking: sell
+HegicStaking --> HegicStaking: burn 1 hlETH/h1BTC
+Alice <-- HegicStaking: 888,000 HEGIC
+end
+
+
+
+@enduml
