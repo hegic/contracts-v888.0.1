@@ -1,0 +1,21 @@
+@startuml
+
+title Exercising an option
+participant Alice
+participant HegicOptions
+participant PriceCalculator
+participant PriceProvider
+participant HegicPool
+participant HegicRewards
+participant HegicStaking
+
+Alice --> HegicOptions: exercise
+HegicOptions --> HegicOptions: payProfit
+HegicOptions --> HegicOptions: _currentPrice
+HegicOptions --> PriceProvider: latestRoundData
+HegicOptions <-- PriceProvider
+HegicOptions --> HegicPool: send
+HegicPool --> Alice: safeTransfer
+
+
+@enduml
