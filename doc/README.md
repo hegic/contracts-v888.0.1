@@ -9,4 +9,4 @@
 ![Exercising an option][2]
 
 [1]: buy.png
-[1]: exercise.png
+[2]: exercise.png
