@@ -10,8 +10,8 @@
 
 ## Staking
 
-![Staking HEGIC][2]
+![Staking HEGIC][3]
 
 [1]: buy.png
 [2]: exercise.png
-[2]: staking.png
+[3]: staking.png
