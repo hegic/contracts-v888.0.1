@@ -29,7 +29,6 @@ describe("HegicRewards", async () => {
   let hegicRewards: HegicRewards
   let deployer: Signer
   let alice: Signer
-  let bob: Signer
 
   beforeEach(async () => {
     ;[deployer, alice] = await ethers.getSigners()
