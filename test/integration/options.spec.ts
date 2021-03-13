@@ -179,6 +179,7 @@ describe("Options", async () => {
       premium: BN
     }
     let amount: BN
+    let strike: BN
     let fees: Fees
     let deployerWBTCBalanceBefore: BN
     let aliceBalanceBefore: BN
@@ -188,6 +189,7 @@ describe("Options", async () => {
     let hedgeFee: BN
     beforeEach(async () => {
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      strike = BN.from(50000)
       aliceBalanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       hegicPoolWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await hegicPoolWBTC.address,
@@ -196,14 +198,14 @@ describe("Options", async () => {
         await deployer.getAddress(),
       )
       lockedAmountBefore = await hegicPoolWBTC.lockedAmount()
-      fees = await priceCalculator.fees(ONE_DAY, amount, BN.from(50000), 2)
+      fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
       await hegicOptions
         .connect(alice)
         .createFor(
           await alice.getAddress(),
           ONE_DAY,
           amount,
-          BN.from(50000),
+          strike,
           BN.from(2),
         )
       const poolTotalBalance = await hegicPoolWBTC.totalBalance()
@@ -219,6 +221,9 @@ describe("Options", async () => {
     it("should create the call option", async () => {
       const option = await hegicOptions.options(BN.from(0))
       expect(option.state).to.eq(BN.from(1))
+      expect(option.strike).to.eq(strike)
+      expect(option.optionType).to.eq(BN.from(2))
+      expect(option.lockedLiquidityID).to.eq(BN.from(0))
     })
     it("should decrease Alice's balance by the settlement fee and premium", async () => {
       expect(
@@ -240,7 +245,7 @@ describe("Options", async () => {
         await hegicPoolWBTC.lockedAmount(),
       )
     })
-    it("should added the locked liquidity to LockedLiquidity[] in the LP", async () => {
+    it("should add the locked liquidity to LockedLiquidity[] in the LP", async () => {
       const ll = await hegicPoolWBTC.lockedLiquidity(BN.from(0))
       expect(ll.amount).to.equal(amount)
       expect(ll.hedgePremium).to.equal(hedgePremium.sub(hedgeFee))
