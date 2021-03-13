@@ -178,12 +178,16 @@ describe("Options", async () => {
       settlementFee: BN
       premium: BN
     }
+    let amount: BN
     let fees: Fees
     let deployerWBTCBalanceBefore: BN
     let aliceBalanceBefore: BN
     let hegicPoolWBTCBalanceBefore: BN
+    let lockedAmountBefore: BN
+    let hedgePremium: BN
     let hedgeFee: BN
     beforeEach(async () => {
+      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       aliceBalanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       hegicPoolWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await hegicPoolWBTC.address,
@@ -191,18 +195,14 @@ describe("Options", async () => {
       deployerWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await deployer.getAddress(),
       )
-      fees = await priceCalculator.fees(
-        ONE_DAY,
-        await ethers.utils.parseUnits("1", await fakeWBTC.decimals()),
-        BN.from(50000),
-        2,
-      )
+      lockedAmountBefore = await hegicPoolWBTC.lockedAmount()
+      fees = await priceCalculator.fees(ONE_DAY, amount, BN.from(50000), 2)
       await hegicOptions
         .connect(alice)
         .createFor(
           await alice.getAddress(),
           ONE_DAY,
-          await ethers.utils.parseUnits("1", await fakeWBTC.decimals()),
+          amount,
           BN.from(50000),
           BN.from(2),
         )
@@ -210,7 +210,7 @@ describe("Options", async () => {
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
       const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
 
-      const hedgePremium = await fees.premium
+      hedgePremium = await fees.premium
         .mul(poolHedgedBalance)
         .div(poolTotalBalance)
 
@@ -234,6 +234,18 @@ describe("Options", async () => {
       expect(
         deployerWBTCBalanceBefore.add(hedgeFee).add(fees.settlementFee),
       ).to.eq(await fakeWBTC.balanceOf(await deployer.getAddress()))
+    })
+    it("should increase the lockedAmount in the Liquidity Pool", async () => {
+      expect(lockedAmountBefore.add(amount)).to.eq(
+        await hegicPoolWBTC.lockedAmount(),
+      )
+    })
+    it("should added the locked liquidity to LockedLiquidity[] in the LP", async () => {
+      const ll = await hegicPoolWBTC.lockedLiquidity(BN.from(0))
+      expect(ll.amount).to.equal(amount)
+      expect(ll.hedgePremium).to.equal(hedgePremium.sub(hedgeFee))
+      expect(ll.unhedgePremium).to.equal(BN.from(0))
+      expect(ll.locked).to.equal(true)
     })
   })
   xdescribe("Buying a call option with lots in the staking pool", async () => {})
