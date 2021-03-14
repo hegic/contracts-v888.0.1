@@ -181,18 +181,22 @@ describe("Options", async () => {
   let fees: Fees
   let deployerWBTCBalanceBefore: BN
   let deployerUSDCBalanceBefore: BN
-  let aliceBalanceBefore: BN
+  let aliceWBTCBalanceBefore: BN
+  let aliceUSDCBalanceBefore: BN
   let hegicPoolWBTCBalanceBefore: BN
-  let hegicPoolUSDCBalanceBefore: BN
   let lockedAmountBefore: BN
   let hedgePremium: BN
   let hedgeFee: BN
+  let amountToLock: BN
+  let hegicStakingUSDCBalanceBefore: BN
 
   describe("Buying a call option with lots in the staking pool", async () => {
     beforeEach(async () => {
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000)
-      aliceBalanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
+      aliceWBTCBalanceBefore = await fakeWBTC.balanceOf(
+        await alice.getAddress(),
+      )
       hegicPoolWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await hegicPoolWBTC.address,
       )
@@ -238,7 +242,7 @@ describe("Options", async () => {
     })
     it("should decrease Alice's balance by the settlement fee and premium", async () => {
       expect(
-        aliceBalanceBefore.sub(fees.settlementFee).sub(fees.premium),
+        aliceWBTCBalanceBefore.sub(fees.settlementFee).sub(fees.premium),
       ).to.eq(await fakeWBTC.balanceOf(await alice.getAddress()))
     })
     it("should add the premium and subtract the hedge fee from the HegicPool", async () => {
@@ -286,8 +290,6 @@ describe("Options", async () => {
     })
   })
   describe("Buying a put option with lots in the staking pool", async () => {
-    let amountToLock: BN
-    let hegicStakingUSDCBalanceBefore: BN
     beforeEach(async () => {
       await fakeHegic
         .connect(alice)
@@ -298,7 +300,9 @@ describe("Options", async () => {
       await hegicStakingUSDC.connect(alice).buy(1)
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000)
-      aliceBalanceBefore = await fakeUSDC.balanceOf(await alice.getAddress())
+      aliceUSDCBalanceBefore = await fakeUSDC.balanceOf(
+        await alice.getAddress(),
+      )
       hegicStakingUSDCBalanceBefore = await fakeUSDC.balanceOf(
         await hegicStakingUSDC.address,
       )
@@ -329,7 +333,7 @@ describe("Options", async () => {
     })
     it("should decrease Alice's balance by the settlement fee and premium", async () => {
       expect(
-        aliceBalanceBefore.sub(fees.settlementFee).sub(fees.premium),
+        aliceUSDCBalanceBefore.sub(fees.settlementFee).sub(fees.premium),
       ).to.eq(await fakeUSDC.balanceOf(await alice.getAddress()))
     })
     it("should increase the balance of the USDC Staking Contract by the settlement fee", async () => {
