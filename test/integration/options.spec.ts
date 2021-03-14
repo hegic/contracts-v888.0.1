@@ -172,21 +172,23 @@ describe("Options", async () => {
         await ethers.utils.parseUnits("1000", await fakeUSDC.decimals()),
       )
   })
+  interface Fees {
+    settlementFee: BN
+    premium: BN
+  }
+  let amount: BN
+  let strike: BN
+  let fees: Fees
+  let deployerWBTCBalanceBefore: BN
+  let deployerUSDCBalanceBefore: BN
+  let aliceBalanceBefore: BN
+  let hegicPoolWBTCBalanceBefore: BN
+  let hegicPoolUSDCBalanceBefore: BN
+  let lockedAmountBefore: BN
+  let hedgePremium: BN
+  let hedgeFee: BN
 
-  describe("Buying a call option with no lots in the staking pool", async () => {
-    interface Fees {
-      settlementFee: BN
-      premium: BN
-    }
-    let amount: BN
-    let strike: BN
-    let fees: Fees
-    let deployerWBTCBalanceBefore: BN
-    let aliceBalanceBefore: BN
-    let hegicPoolWBTCBalanceBefore: BN
-    let lockedAmountBefore: BN
-    let hedgePremium: BN
-    let hedgeFee: BN
+  describe("Buying a call option with lots in the staking pool", async () => {
     beforeEach(async () => {
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000)
@@ -199,6 +201,15 @@ describe("Options", async () => {
       )
       lockedAmountBefore = await hegicPoolWBTC.lockedAmount()
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
+
+      await fakeHegic
+        .connect(alice)
+        .approve(
+          await hegicStakingWBTC.address,
+          await ethers.constants.MaxUint256,
+        )
+      await hegicStakingWBTC.connect(alice).buy(1)
+
       await hegicOptions
         .connect(alice)
         .createFor(
@@ -235,10 +246,10 @@ describe("Options", async () => {
         await fakeWBTC.balanceOf(await hegicPoolWBTC.address),
       )
     })
-    it("should send the hedge fee and settlement fee to the deployer address", async () => {
-      expect(
-        deployerWBTCBalanceBefore.add(hedgeFee).add(fees.settlementFee),
-      ).to.eq(await fakeWBTC.balanceOf(await deployer.getAddress()))
+    it("should increase the balance of HegicStaking by the settlement fee", async () => {
+      expect(await fakeWBTC.balanceOf(await hegicStakingWBTC.address)).to.eq(
+        fees.settlementFee,
+      )
     })
     it("should increase the lockedAmount in the Liquidity Pool", async () => {
       expect(lockedAmountBefore.add(amount)).to.eq(
@@ -253,9 +264,118 @@ describe("Options", async () => {
       expect(ll.locked).to.equal(true)
     })
   })
-  xdescribe("Buying a call option with lots in the staking pool", async () => {})
-  xdescribe("Buying a put option with no lots in the staking pool", async () => {})
-  xdescribe("Buying a put option with lots in the staking pool", async () => {})
+  describe("Buying a call option with no lots in the staking pool", async () => {
+    beforeEach(async () => {
+      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      strike = BN.from(50000)
+      fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
+      await hegicOptions
+        .connect(alice)
+        .createFor(
+          await alice.getAddress(),
+          ONE_DAY,
+          amount,
+          strike,
+          BN.from(2),
+        )
+    })
+    it("should send the hedge fee and settlement fee to the deployer address", async () => {
+      expect(
+        deployerWBTCBalanceBefore.add(hedgeFee).add(fees.settlementFee),
+      ).to.eq(await fakeWBTC.balanceOf(await deployer.getAddress()))
+    })
+  })
+  describe("Buying a put option with lots in the staking pool", async () => {
+    let amountToLock: BN
+    let hegicStakingUSDCBalanceBefore: BN
+    beforeEach(async () => {
+      await fakeHegic
+        .connect(alice)
+        .approve(
+          await hegicStakingUSDC.address,
+          await ethers.constants.MaxUint256,
+        )
+      await hegicStakingUSDC.connect(alice).buy(1)
+      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      strike = BN.from(50000)
+      aliceBalanceBefore = await fakeUSDC.balanceOf(await alice.getAddress())
+      hegicStakingUSDCBalanceBefore = await fakeUSDC.balanceOf(
+        await hegicStakingUSDC.address,
+      )
+      lockedAmountBefore = await hegicPoolUSDC.lockedAmount()
+      fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
+      await hegicOptions
+        .connect(alice)
+        .createFor(
+          await alice.getAddress(),
+          ONE_DAY,
+          amount,
+          strike,
+          BN.from(1),
+        )
+
+      amountToLock = amount
+        .mul(strike)
+        .mul(BN.from(10).pow(6)) // BASE_TOKEN_DECIMALS
+        .div(BN.from(10).pow(4)) // STABLE_TOKEN_DECIMALS
+        .div(BN.from(10).pow(8)) // PRICE_DECIMALS
+    })
+    it("should create the put option", async () => {
+      const option = await hegicOptions.options(BN.from(0))
+      expect(option.state).to.eq(BN.from(1))
+      expect(option.strike).to.eq(strike)
+      expect(option.optionType).to.eq(BN.from(1))
+      expect(option.lockedLiquidityID).to.eq(BN.from(0))
+    })
+    it("should decrease Alice's balance by the settlement fee and premium", async () => {
+      expect(
+        aliceBalanceBefore.sub(fees.settlementFee).sub(fees.premium),
+      ).to.eq(await fakeUSDC.balanceOf(await alice.getAddress()))
+    })
+    it("should increase the balance of the USDC Staking Contract by the settlement fee", async () => {
+      expect(hegicStakingUSDCBalanceBefore.add(fees.settlementFee)).to.eq(
+        await fakeUSDC.balanceOf(await hegicStakingUSDC.address),
+      )
+    })
+    it("should increase the lockedAmount in the Liquidity Pool", async () => {
+      expect(lockedAmountBefore.add(amountToLock)).to.eq(
+        await hegicPoolUSDC.lockedAmount(),
+      )
+    })
+    it("should add the locked liquidity to LockedLiquidity[] in the LP", async () => {
+      const ll = await hegicPoolUSDC.lockedLiquidity(BN.from(0))
+      expect(ll.amount).to.equal(amountToLock)
+      // TODO - verify the premium
+      // expect(ll.hedgePremium).to.equal(BN.from(0))
+      // expect(ll.unhedgePremium).to.equal(BN.from(0))
+      expect(ll.locked).to.equal(true)
+    })
+  })
+  describe("Buying a put option with no lots in the staking pool", async () => {
+    beforeEach(async () => {
+      deployerUSDCBalanceBefore = await fakeUSDC.balanceOf(
+        await deployer.getAddress(),
+      )
+      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      strike = BN.from(50000)
+      fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
+      await hegicOptions
+        .connect(alice)
+        .createFor(
+          await alice.getAddress(),
+          ONE_DAY,
+          amount,
+          strike,
+          BN.from(1),
+        )
+    })
+    it("should send the hedge fee and settlement fee to the deployer address", async () => {
+      // TODO verify there is no fee
+      expect(deployerUSDCBalanceBefore.add(fees.settlementFee)).to.eq(
+        await fakeUSDC.balanceOf(await deployer.getAddress()),
+      )
+    })
+  })
   xdescribe("Exercising a call option", async () => {})
   xdescribe("Exercising a put option", async () => {})
   xdescribe("Expiring a call option", async () => {})
