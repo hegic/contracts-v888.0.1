@@ -7,6 +7,14 @@
   "tabWidth": 2,
   "overrides": [
     {
+      "files": "*.ts",
+      "options": {
+          "parser": "typescript",
+          "trailingComma": "all",
+          "arrowParens": "always"
+      }
+    },
+    {
       "files": "*.sol",
       "options": {
         "tabWidth": 4,

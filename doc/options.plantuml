@@ -1,0 +1,45 @@
+@startuml
+
+title Options
+participant Alice
+participant HegicOptions
+participant PriceCalculator
+participant PriceProvider
+participant HegicPool
+participant HegicRewards
+participant HegicStaking
+
+group Buying an option
+Alice --> HegicOptions: createFor
+HegicOptions --> PriceCalculator: fees
+PriceCalculator --> PriceProvider: latestRoundData
+PriceCalculator <-- PriceProvider
+PriceCalculator --> HegicOptions
+
+HegicOptions --> HegicPool: lock
+Alice <-- HegicOptions: safeTransferFrom
+Alice --> HegicOptions: settlementFee + premium
+HegicOptions --> HegicStaking: sendProfit
+HegicOptions --> Alice: _safeMint (ERC721)
+HegicOptions --> HegicOptions: Create event
+end
+
+group Executing an option
+Alice --> HegicOptions: exercise
+HegicOptions --> HegicOptions: payProfit
+HegicOptions --> HegicOptions: _currentPrice
+HegicOptions --> PriceProvider: latestRoundData
+HegicOptions <-- PriceProvider
+HegicOptions --> HegicPool: send
+HegicPool --> Alice: safeTransfer
+HegicOptions --> HegicOptions: Exercise event
+end
+
+group Unlocking an expired option
+Alice --> HegicOptions: unlock
+HegicOptions --> HegicPool: unlock
+HegicPool --> HegicPool: Profit event
+HegicOptions --> HegicOptions: Expire event
+end
+
+@enduml

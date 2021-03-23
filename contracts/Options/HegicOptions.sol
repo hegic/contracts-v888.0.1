@@ -150,6 +150,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
+
+        token[OptionType.Call].safeTransferFrom(
+            msg.sender,
+            address(this),
+            settlementFee.add(premium)
+        );
+        settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
+
         uint256 lockedAmount = amount;
         optionID = options.length;
         uint256 lockedLiquidityID =
@@ -165,13 +173,6 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
                 lockedLiquidityID
             )
         );
-
-        token[OptionType.Call].safeTransferFrom(
-            msg.sender,
-            address(this),
-            settlementFee.add(premium)
-        );
-        settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
 
         _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);

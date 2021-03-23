@@ -239,7 +239,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
         require(t.state == TrancheState.Open);
         require(_isApprovedOrOwner(msg.sender, trancheID));
         require(
-            t.creationTimestamp + lockupPeriod < block.timestamp,
+            block.timestamp > t.creationTimestamp.add(lockupPeriod),
             "Pool: Withdrawal is locked up"
         );
 
