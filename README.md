@@ -2,7 +2,7 @@
 
 [![Build
 Status](https://github.com/hegic/contracts/actions/workflows/ci.yaml/badge.svg)](https://github.com/hegic/contracts/actions/workflows/ci.yaml)
-[![codecov](https://codecov.io/gh/hegic/contracts/branch/hardhat/graph/badge.svg?token=AjWJw6x67r)](https://codecov.io/gh/hegic/contracts)
+[![codecov](https://codecov.io/gh/hegic/contracts/branch/development/graph/badge.svg?token=TPK7IUJP2N)](https://codecov.io/gh/hegic/contracts)
 [![GPLv3
 License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://opensource.org/licenses/)
 [![Twitter
