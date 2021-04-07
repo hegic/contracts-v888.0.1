@@ -4,6 +4,8 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-typechain"
 import "hardhat-deploy"
 import "hardhat-deploy-ethers"
+import "hardhat-gas-reporter"
+import "hardhat-watcher"
 import "solidity-coverage"
 import {config as dotEnvConfig} from "dotenv"
 
@@ -20,7 +22,13 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.7.6",
+        version: "0.8.3",
+        settings:{
+          optimizer: {
+            enabled: true,
+            runs: 200
+          },
+        }
       },
     ],
   },
@@ -41,6 +49,11 @@ const config: HardhatUserConfig = {
         default: 0,
     }
   },
+  watcher: {
+    compilation: {
+      tasks: ["compile"],
+    }
+  }
 }
 
 export default config

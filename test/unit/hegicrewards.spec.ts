@@ -47,9 +47,6 @@ describe("HegicRewards", async () => {
       await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
     )
 
-    await hegicPoolWBTC.transferOwnership(await hegicOptions.address)
-    await hegicPoolUSDC.transferOwnership(await hegicOptions.address)
-
     await fakeWBTC
       .connect(alice)
       .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)

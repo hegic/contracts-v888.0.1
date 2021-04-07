@@ -33,9 +33,9 @@
  */
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../Interfaces/Interfaces.sol";
-pragma solidity 0.7.6;
+pragma solidity 0.8.3;
 
 contract HegicStaking is ERC20, IHegicStaking {
     using SafeERC20 for IERC20;
@@ -47,7 +47,7 @@ contract HegicStaking is ERC20, IHegicStaking {
     uint256 public constant LOT_PRICE = 888_000e18;
     uint256 internal constant ACCURACY = 1e30;
 
-    address payable public immutable FALLBACK_RECIPIENT;
+    address public immutable FALLBACK_RECIPIENT;
 
     uint256 public totalProfit = 0;
     mapping(address => uint256) internal lastProfit;
@@ -65,8 +65,11 @@ contract HegicStaking is ERC20, IHegicStaking {
     ) ERC20(name, short) {
         HEGIC = _hegic;
         token = _token;
-        _setupDecimals(0);
         FALLBACK_RECIPIENT = msg.sender;
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 0;
     }
 
     function claimProfit() external override returns (uint256 profit) {

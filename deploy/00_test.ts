@@ -97,6 +97,7 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     log: true,
     args: [WBTCOptions.address, HEGIC.address, "1000000000000000000000000", "1000000000", 0],
   })
+
 };
 
 deployment.tags = ['test']

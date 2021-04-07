@@ -58,9 +58,6 @@ describe("Options", async () => {
 
     await hegicOptions.updatePriceCalculator(await priceCalculator.address)
 
-    await hegicPoolWBTC.transferOwnership(await hegicOptions.address)
-    await hegicPoolUSDC.transferOwnership(await hegicOptions.address)
-
     await fakeWBTC
       .connect(alice)
       .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)

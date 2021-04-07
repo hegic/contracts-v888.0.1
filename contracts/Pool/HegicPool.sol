@@ -1,4 +1,4 @@
-pragma solidity 0.7.6;
+pragma solidity 0.8.3;
 
 /**
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -20,14 +20,14 @@ pragma solidity 0.7.6;
  */
 
 import "../Interfaces/Interfaces.sol";
+import "./HegicPoolAccess.sol";
 
 /**
  * @author 0mllwntrmt3
  * @title Hegic WBTC Liquidity Pool
  * @notice Accumulates liquidity in WBTC from LPs and distributes P&L in WBTC
  */
-contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
-    using SafeMath for uint256;
+contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     using SafeERC20 for IERC20;
 
     uint256 public constant INITIAL_RATE = 1e20;
@@ -63,16 +63,32 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
      * @notice Used for changing the lockup period
      * @param value New period value
      */
-    function setLockupPeriod(uint256 value) external override onlyOwner {
+    function setLockupPeriod(uint256 value) external override onlyAdmin {
         require(value <= 60 days, "Lockup period is too long");
         lockupPeriod = value;
+    }
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721, AccessControl)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IHegicLiquidityPool).interfaceId ||
+            AccessControl.supportsInterface(interfaceId) ||
+            ERC721.supportsInterface(interfaceId);
     }
 
     /**
      * @notice Used for changing the hedge pool address
      * @param value New address
      */
-    function setHedgePool(address value) external override onlyOwner {
+    function setHedgePool(address value) external override onlyAdmin {
         require(value != address(0));
         hedgePool = value;
     }
@@ -84,24 +100,24 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
     function lock(uint256 amount, uint256 premium)
         external
         override
-        onlyOwner
+        onlyHegicOptions
         returns (uint256 id)
     {
         uint256 balance = totalBalance();
         require(
-            lockedAmount.add(amount).mul(10) <= balance.mul(8),
+            (lockedAmount + amount) * 10 <= balance * 8,
             "Pool Error: Amount is too large."
         );
-        uint256 hedgePremium = premium.mul(hedgedBalance).div(balance);
-        uint256 hedgeFee = hedgePremium.mul(hedgeFeeRate).div(100);
+        uint256 hedgePremium = (premium * hedgedBalance) / balance;
+        uint256 hedgeFee = (hedgePremium * hedgeFeeRate) / 100;
 
-        lockedAmount = lockedAmount.add(amount);
+        lockedAmount += amount;
         id = lockedLiquidity.length;
         lockedLiquidity.push(
             LockedLiquidity(
                 amount,
-                hedgePremium.sub(hedgeFee),
-                premium.sub(hedgePremium),
+                hedgePremium - hedgeFee,
+                premium - hedgePremium,
                 true
             )
         );
@@ -114,7 +130,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
      * @nonce Called by the HegicOptions contract for unlocking liquidity in expired options
      * @param amount Amount of funds that should be unlocked in an expired option
      */
-    function unlock(uint256 id) external override onlyOwner {
+    function unlock(uint256 id) external override onlyHegicOptions {
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
         emit Profit(id, ll.hedgePremium, ll.unhedgePremium);
@@ -129,17 +145,16 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
         uint256 id,
         address to,
         uint256 amount
-    ) external override onlyOwner {
+    ) external override onlyHegicOptions {
         require(to != address(0));
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
 
         uint256 transferAmount = amount > ll.amount ? ll.amount : amount;
         token.safeTransfer(to, transferAmount);
-        uint256 hedgeLoss =
-            transferAmount.mul(hedgedBalance).div(totalBalance());
-        uint256 unhedgeLoss = transferAmount.sub(hedgeLoss);
-        if (transferAmount <= ll.hedgePremium.add(ll.unhedgePremium))
+        uint256 hedgeLoss = (transferAmount * hedgedBalance) / totalBalance();
+        uint256 unhedgeLoss = transferAmount - hedgeLoss;
+        if (transferAmount <= ll.hedgePremium + ll.unhedgePremium)
             emit Profit(
                 id,
                 ll.hedgePremium - hedgeLoss,
@@ -159,9 +174,9 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
             "LockedLiquidity with such id has already been unlocked"
         );
         ll.locked = false;
-        lockedAmount = lockedAmount.sub(ll.amount);
-        hedgedBalance = hedgedBalance.add(ll.hedgePremium);
-        unhedgedBalance = unhedgedBalance.add(ll.unhedgePremium);
+        lockedAmount -= ll.amount;
+        hedgedBalance += ll.hedgePremium;
+        unhedgedBalance += ll.unhedgePremium;
     }
 
     /*
@@ -181,18 +196,18 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
         uint256 totalShare = hedging ? hedgedShare : unhedgedShare;
         uint256 balance = hedging ? hedgedBalance : unhedgedBalance;
         share = totalShare > 0 && balance > 0
-            ? amount.mul(totalShare).div(balance)
-            : amount.mul(INITIAL_RATE);
+            ? (amount * totalShare) / balance
+            : amount * INITIAL_RATE;
 
         require(share >= minShare, "Pool: Mint limit is too large");
         require(share > 0, "Pool: Amount is too small");
 
         if (hedging) {
-            hedgedShare = hedgedShare.add(share);
-            hedgedBalance = hedgedBalance.add(amount);
+            hedgedShare += share;
+            hedgedBalance += amount;
         } else {
-            unhedgedShare = unhedgedShare.add(share);
-            unhedgedBalance = unhedgedBalance.add(amount);
+            unhedgedShare += share;
+            unhedgedBalance += amount;
         }
 
         uint256 trancheID = tranches.length;
@@ -239,19 +254,19 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
         require(t.state == TrancheState.Open);
         require(_isApprovedOrOwner(msg.sender, trancheID));
         require(
-            block.timestamp > t.creationTimestamp.add(lockupPeriod),
+            block.timestamp > t.creationTimestamp + lockupPeriod,
             "Pool: Withdrawal is locked up"
         );
 
         t.state = TrancheState.Closed;
         if (t.hedged) {
-            amount = t.share.mul(hedgedBalance).div(hedgedShare);
-            hedgedShare = hedgedShare.sub(t.share);
-            hedgedBalance = hedgedBalance.sub(amount);
+            amount = (t.share * hedgedBalance) / hedgedShare;
+            hedgedShare -= t.share;
+            hedgedBalance -= amount;
         } else {
-            amount = t.share.mul(unhedgedBalance).div(unhedgedShare);
-            unhedgedShare = unhedgedShare.sub(t.share);
-            unhedgedBalance = unhedgedBalance.sub(amount);
+            amount = (t.share * unhedgedBalance) / unhedgedShare;
+            unhedgedShare -= t.share;
+            unhedgedBalance -= amount;
         }
 
         token.safeTransfer(ownerOf(trancheID), amount);
@@ -263,7 +278,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
      * @return balance Unlocked amount
      */
     function availableBalance() public view returns (uint256 balance) {
-        return totalBalance().sub(lockedAmount);
+        return totalBalance() - lockedAmount;
     }
 
     /*
@@ -271,7 +286,7 @@ contract HegicPool is IHegicLiquidityPool, Ownable, ERC721 {
      * @return balance Pool balance
      */
     function totalBalance() public view override returns (uint256 balance) {
-        return hedgedBalance.add(unhedgedBalance);
+        return hedgedBalance + unhedgedBalance;
     }
 
     function _beforeTokenTransfer(

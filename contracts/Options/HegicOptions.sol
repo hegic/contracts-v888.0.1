@@ -1,4 +1,4 @@
-pragma solidity 0.7.6;
+pragma solidity 0.8.3;
 
 /**
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -29,14 +29,11 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
  */
 
 contract HegicOptions is Ownable, IHegicOptions, ERC721 {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     uint256 internal immutable BASE_TOKEN_DECIMALS; // / 1e18;
     uint256 internal immutable STABLE_TOKEN_DECIMALS; // / 1e6;
     uint256 internal constant PRICE_DECIMALS = 1e8;
-    // uint256 internal constant BETA_PERIOD = 14 days; // base
-    uint256 internal constant BETA_PERIOD = 360 days; // beta
     uint256 internal immutable CONTRACT_CREATED = block.timestamp;
 
     Option[] public override options;
@@ -81,16 +78,6 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         stableDecimals -= diff;
         BASE_TOKEN_DECIMALS = 10**baseDecimals;
         STABLE_TOKEN_DECIMALS = 10**stableDecimals;
-    }
-
-    /**
-     * @notice Can be used to update the contract in critical situations
-     *         in the first 14 days after deployment
-     */
-    function transferPoolsOwnership() external onlyOwner {
-        require(block.timestamp < CONTRACT_CREATED + BETA_PERIOD);
-        Ownable(address(pool[OptionType.Call])).transferOwnership(owner());
-        Ownable(address(pool[OptionType.Put])).transferOwnership(owner());
     }
 
     /**
@@ -154,7 +141,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         token[OptionType.Call].safeTransferFrom(
             msg.sender,
             address(this),
-            settlementFee.add(premium)
+            settlementFee + premium
         );
         settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
 
@@ -187,11 +174,9 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Put);
         uint256 lockedAmount =
-            amount
-                .mul(strike)
-                .mul(BASE_TOKEN_DECIMALS)
-                .div(STABLE_TOKEN_DECIMALS)
-                .div(PRICE_DECIMALS);
+            (amount * strike * BASE_TOKEN_DECIMALS) /
+                STABLE_TOKEN_DECIMALS /
+                PRICE_DECIMALS;
 
         optionID = options.length;
         uint256 lockedLiquidityID =
@@ -211,7 +196,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         token[OptionType.Put].safeTransferFrom(
             msg.sender,
             address(this),
-            settlementFee.add(premium)
+            settlementFee + premium
         );
         settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
 
@@ -245,19 +230,19 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     function approve() public {
         token[OptionType.Call].safeApprove(
             address(pool[OptionType.Call]),
-            uint256(-1)
+            type(uint256).max
         );
         token[OptionType.Call].safeApprove(
             address(settlementFeeRecipient[OptionType.Call]),
-            uint256(-1)
+            type(uint256).max
         );
         token[OptionType.Put].safeApprove(
             address(pool[OptionType.Put]),
-            uint256(-1)
+            type(uint256).max
         );
         token[OptionType.Put].safeApprove(
             address(settlementFeeRecipient[OptionType.Put]),
-            uint256(-1)
+            type(uint256).max
         );
     }
 
@@ -289,14 +274,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         if (option.optionType == OptionType.Call) {
             require(option.strike <= currentPrice, "Current price is too low");
-            profit = currentPrice.sub(option.strike).mul(option.amount).div(
-                currentPrice
-            );
+            profit =
+                ((currentPrice - option.strike) * option.amount) /
+                currentPrice;
         } else if (option.optionType == OptionType.Put) {
             require(option.strike >= currentPrice, "Current price is too high");
-            profit = option.strike.sub(currentPrice).mul(option.amount).div(
-                PRICE_DECIMALS
-            );
+            profit =
+                ((option.strike - currentPrice) * option.amount) /
+                PRICE_DECIMALS;
         }
 
         pool[option.optionType].send(optionID, holder, profit);

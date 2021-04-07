@@ -20,7 +20,10 @@ describe("HegicPool", async () => {
 
     fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
     hegicPool = (await ethers.getContract("HegicWBTCPool")) as HegicPool
-
+    await hegicPool.grantRole(
+      await hegicPool.HEGIC_OPTIONS_ROLE(),
+      await deployer.getAddress(),
+    )
     await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
     await fakeWBTC
       .connect(alice)
@@ -45,10 +48,10 @@ describe("HegicPool", async () => {
   })
 
   describe("setLockupPeriod", async () => {
-    it("should revert if the caller is not the owner", async () => {
+    it("should revert if the caller is not the HegicOptions", async () => {
       await expect(
         hegicPool.connect(alice).setLockupPeriod(BN.from(10)),
-      ).to.be.revertedWith("caller is not the owner")
+      ).to.be.revertedWith("The caller must have the ADMIN role")
     })
 
     it("should revert if the period is greater than 60 days", async () => {
@@ -67,10 +70,10 @@ describe("HegicPool", async () => {
   })
 
   describe("setHedgePool", async () => {
-    it("should revert if the caller is not the owner", async () => {
+    it("should revert if the caller is not the admin", async () => {
       await expect(
         hegicPool.connect(alice).setHedgePool(await alice.getAddress()),
-      ).to.be.revertedWith("caller is not the owner")
+      ).to.be.revertedWith("The caller must have the ADMIN role")
     })
 
     it("should revert if the address is the zero address", async () => {
@@ -98,10 +101,10 @@ describe("HegicPool", async () => {
           BN.from(100000),
         )
     })
-    it("should revert if the caller is not the owner", async () => {
+    it("should revert if the caller is not the admin", async () => {
       await expect(
         hegicPool.connect(alice).lock(BN.from(1), BN.from(1)),
-      ).to.be.revertedWith("caller is not the owner")
+      ).to.be.revertedWith("The caller must have the HEGIC_OPTIONS_ROLE role")
     })
 
     // If the lockedAmount * 10 <= balance * 8 it should revert
@@ -147,10 +150,10 @@ describe("HegicPool", async () => {
           BN.from(100000),
         )
     })
-    it("should revert if the caller is not the owner", async () => {
+    it("should revert if the caller is not the admin", async () => {
       await expect(
         hegicPool.connect(alice).unlock(BN.from(0)),
-      ).to.be.revertedWith("caller is not the owner")
+      ).to.be.revertedWith("The caller must have the HEGIC_OPTIONS_ROLE role")
     })
 
     it("should revert if locked liquidity id does not exist", async () => {
