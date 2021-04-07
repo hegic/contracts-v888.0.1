@@ -1,15 +1,10 @@
-import {ethers} from "hardhat"
+import {ethers, deployments} from "hardhat"
 import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicPool} from "../../typechain/HegicPool"
 import {HegicOptions} from "../../typechain/HegicOptions"
-import {PriceCalculator} from "../../typechain/PriceCalculator"
-import {HegicStaking} from "../../typechain/HegicStaking"
-import {FakeHegic} from "../../typechain/FakeHegic"
-import {FakeUsdc} from "../../typechain/FakeUsdc"
-import {FakeWbtc} from "../../typechain/FakeWbtc"
-import {FakePriceProvider} from "../../typechain/FakePriceProvider"
+import {Erc20Mock} from "../../typechain/Erc20Mock"
 import {HegicRewards} from "../../typechain/HegicRewards"
 
 chai.use(solidity)
@@ -18,117 +13,39 @@ const {expect} = chai
 describe("HegicRewards", async () => {
   let hegicPoolWBTC: HegicPool
   let hegicPoolUSDC: HegicPool
-  let hegicStakingWBTC: HegicStaking
-  let hegicStakingUSDC: HegicStaking
   let hegicOptions: HegicOptions
-  let priceCalculator: PriceCalculator
-  let fakeHegic: FakeHegic
-  let fakeUSDC: FakeUsdc
-  let fakeWBTC: FakeWbtc
-  let fakePriceProvider: FakePriceProvider
+  let fakeHegic: Erc20Mock
+  let fakeUSDC: Erc20Mock
+  let fakeWBTC: Erc20Mock
   let hegicRewards: HegicRewards
-  let deployer: Signer
   let alice: Signer
 
   beforeEach(async () => {
-    ;[deployer, alice] = await ethers.getSigners()
+    await deployments.fixture()
+    ;[, alice] = await ethers.getSigners()
 
-    const fakeHegicFactory = await ethers.getContractFactory("FakeHEGIC")
-    fakeHegic = (await fakeHegicFactory.connect(deployer).deploy()) as FakeHegic
-    await fakeHegic.deployed()
+    hegicPoolWBTC = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+    hegicPoolUSDC = (await ethers.getContract("HegicUSDCPool")) as HegicPool
+    hegicOptions = (await ethers.getContract("WBTCOptions")) as HegicOptions
+    fakeHegic = (await ethers.getContract("HEGIC")) as Erc20Mock
+    fakeUSDC = (await ethers.getContract("USDC")) as Erc20Mock
+    fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
+    hegicRewards = (await ethers.getContract("WBTCRewards")) as HegicRewards
+
     await fakeHegic.mintTo(
       await alice.getAddress(),
       await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
     )
 
-    const fakeUsdcFactory = await ethers.getContractFactory("FakeUSDC")
-    fakeUSDC = (await fakeUsdcFactory.connect(deployer).deploy()) as FakeUsdc
-    await fakeUSDC.deployed()
     await fakeUSDC.mintTo(
       await alice.getAddress(),
       await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
     )
 
-    const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWbtcFactory.connect(deployer).deploy()) as FakeWbtc
-    await fakeWBTC.deployed()
     await fakeWBTC.mintTo(
       await alice.getAddress(),
       await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
     )
-
-    const fakePriceProviderFactory = await ethers.getContractFactory(
-      "FakePriceProvider",
-    )
-    fakePriceProvider = (await fakePriceProviderFactory
-      .connect(deployer)
-      .deploy(BN.from(50000))) as FakePriceProvider
-    await fakePriceProvider.deployed()
-
-    const hegicPoolWBTCFactory = await ethers.getContractFactory("HegicPool")
-    hegicPoolWBTC = (await hegicPoolWBTCFactory
-      .connect(deployer)
-      .deploy(await fakeWBTC.address, "writeWBTC", "wWBTC")) as HegicPool
-    await hegicPoolWBTC.deployed()
-
-    const hegicPoolUSDCFactory = await ethers.getContractFactory("HegicPool")
-    hegicPoolUSDC = (await hegicPoolUSDCFactory
-      .connect(deployer)
-      .deploy(await fakeUSDC.address, "writeUSDC", "wUSDC")) as HegicPool
-    await hegicPoolUSDC.deployed()
-
-    const hegicStakingWBTCFactory = await ethers.getContractFactory(
-      "HegicStaking",
-    )
-    hegicStakingWBTC = (await hegicStakingWBTCFactory
-      .connect(deployer)
-      .deploy(
-        await fakeHegic.address,
-        await fakeWBTC.address,
-        "Hegic WBTC Lot",
-        "hlWBTC",
-      )) as HegicStaking
-    await hegicStakingWBTC.deployed()
-
-    const hegicStakingUSDCFactory = await ethers.getContractFactory(
-      "HegicStaking",
-    )
-    hegicStakingUSDC = (await hegicStakingUSDCFactory
-      .connect(deployer)
-      .deploy(
-        await fakeHegic.address,
-        await fakeUSDC.address,
-        "Hegic USDC Lot",
-        "hlUSDC",
-      )) as HegicStaking
-    await hegicStakingUSDC.deployed()
-
-    const priceCalculatorFactory = await ethers.getContractFactory(
-      "PriceCalculator",
-    )
-    priceCalculator = (await priceCalculatorFactory
-      .connect(deployer)
-      .deploy(
-        [9000, 10000, 20000],
-        await fakePriceProvider.address,
-        await hegicPoolWBTC.address,
-        6,
-      )) as PriceCalculator
-    await priceCalculator.deployed()
-
-    const hegicOptionsFactory = await ethers.getContractFactory("HegicOptions")
-    hegicOptions = (await hegicOptionsFactory.deploy(
-      await fakePriceProvider.address,
-      await hegicPoolWBTC.address,
-      await hegicPoolUSDC.address,
-      await hegicStakingUSDC.address,
-      await hegicStakingWBTC.address,
-      await fakeWBTC.address,
-      await fakeUSDC.address,
-      "HegicOptions WBTC",
-      "HO_WBTC",
-    )) as HegicOptions
-    await hegicOptions.deployed()
 
     await hegicPoolWBTC.transferOwnership(await hegicOptions.address)
     await hegicPoolUSDC.transferOwnership(await hegicOptions.address)
@@ -158,15 +75,6 @@ describe("HegicRewards", async () => {
         true,
         BN.from(100000),
       )
-
-    const hegicRewardsFactory = await ethers.getContractFactory(
-      "HegicWBTCRewards",
-    )
-    hegicRewards = (await hegicRewardsFactory.deploy(
-      await hegicOptions.address,
-      await fakeHegic.address,
-    )) as HegicRewards
-    await hegicRewards.deployed()
   })
 
   describe("constructor & settings", async () => {

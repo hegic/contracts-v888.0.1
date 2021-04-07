@@ -1,28 +1,28 @@
-import {ethers} from "hardhat"
+import {ethers, deployments} from "hardhat"
 import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicStaking} from "../../typechain/HegicStaking"
-import {FakeHegic} from "../../typechain/FakeHegic"
-import {FakeWbtc} from "../../typechain/FakeWbtc"
+import {Erc20Mock} from "../../typechain/Erc20Mock"
 
 chai.use(solidity)
 const {expect} = chai
 
 describe("HegicStaking", async () => {
   let hegicStaking: HegicStaking
-  let fakeHegic: FakeHegic
-  let fakeWBTC: FakeWbtc
+  let fakeHegic: Erc20Mock
+  let fakeWBTC: Erc20Mock
   let deployer: Signer
   let alice: Signer
   let bob: Signer
 
   beforeEach(async () => {
+    await deployments.fixture()
     ;[deployer, alice, bob] = await ethers.getSigners()
 
-    const fakeHegicFactory = await ethers.getContractFactory("FakeHEGIC")
-    fakeHegic = (await fakeHegicFactory.deploy()) as FakeHegic
-    await fakeHegic.deployed()
+    fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
+    fakeHegic = (await ethers.getContract("HEGIC")) as Erc20Mock
+    hegicStaking = (await ethers.getContract("WBTCStaking")) as HegicStaking
 
     await fakeHegic.mintTo(
       await alice.getAddress(),
@@ -32,19 +32,6 @@ describe("HegicStaking", async () => {
       await bob.getAddress(),
       await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
     )
-
-    const fakeWBTCFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWBTCFactory.deploy()) as FakeWbtc
-    await fakeWBTC.deployed()
-
-    const hegicStakingFactory = await ethers.getContractFactory("HegicStaking")
-    hegicStaking = (await hegicStakingFactory.deploy(
-      await fakeHegic.address,
-      await fakeWBTC.address,
-      "WBTC Staking",
-      "WBTC S",
-    )) as HegicStaking
-    await hegicStaking.deployed()
 
     await fakeWBTC.mintTo(
       await alice.getAddress(),

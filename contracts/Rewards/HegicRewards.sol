@@ -36,7 +36,7 @@ pragma solidity 0.7.6;
 
 import "../Interfaces/Interfaces.sol";
 
-abstract contract HegicRewards is Ownable {
+contract HegicRewards is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

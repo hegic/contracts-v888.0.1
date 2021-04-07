@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-etherscan"
 import "hardhat-typechain"
 import "hardhat-deploy"
+import "hardhat-deploy-ethers"
 import "solidity-coverage"
 import {config as dotEnvConfig} from "dotenv"
 
@@ -34,6 +35,11 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
+  },
+  namedAccounts: {
+    deployer: {
+        default: 0,
+    }
   },
 }
 

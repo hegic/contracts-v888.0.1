@@ -1,11 +1,11 @@
-import {ethers} from "hardhat"
+import {ethers, deployments} from "hardhat"
 import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicPool} from "../../typechain/HegicPool"
-import {FakeWbtc} from "../../typechain/FakeWbtc"
+import {Erc20Mock} from "../../typechain/Erc20Mock"
 import {PriceCalculator} from "../../typechain/PriceCalculator"
-import {FakePriceProvider} from "../../typechain/FakePriceProvider"
+import {PriceProviderMock} from "../../typechain/PriceProviderMock"
 
 chai.use(solidity)
 const {expect} = chai
@@ -13,45 +13,24 @@ const {expect} = chai
 describe("PriceCalculator", async () => {
   let hegicPoolWBTC: HegicPool
   let priceCalculator: PriceCalculator
-  let fakeWBTC: FakeWbtc
-  let fakePriceProvider: FakePriceProvider
-  let deployer: Signer
+  let fakeWBTC: Erc20Mock
+  let fakePriceProvider: PriceProviderMock
   let alice: Signer
 
   beforeEach(async () => {
-    ;[deployer, alice] = await ethers.getSigners()
+    await deployments.fixture()
+    ;[, alice] = await ethers.getSigners()
 
-    const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWbtcFactory.connect(deployer).deploy()) as FakeWbtc
-    await fakeWBTC.deployed()
+    fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
+    hegicPoolWBTC = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+    fakePriceProvider = (await ethers.getContract(
+      "WBTCPriceProvider",
+    )) as PriceProviderMock
+    priceCalculator = (await ethers.getContract(
+      "WBTCPriceCalculator",
+    )) as PriceCalculator
+
     await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
-
-    const fakePriceProviderFactory = await ethers.getContractFactory(
-      "FakePriceProvider",
-    )
-    fakePriceProvider = (await fakePriceProviderFactory
-      .connect(deployer)
-      .deploy(BN.from(50000))) as FakePriceProvider
-    await fakePriceProvider.deployed()
-
-    const hegicPoolWBTCFactory = await ethers.getContractFactory("HegicPool")
-    hegicPoolWBTC = (await hegicPoolWBTCFactory
-      .connect(deployer)
-      .deploy(await fakeWBTC.address, "writeWBTC", "wWBTC")) as HegicPool
-    await hegicPoolWBTC.deployed()
-
-    const priceCalculatorFactory = await ethers.getContractFactory(
-      "PriceCalculator",
-    )
-    priceCalculator = (await priceCalculatorFactory
-      .connect(deployer)
-      .deploy(
-        [9000, 10000, 20000],
-        await fakePriceProvider.address,
-        await hegicPoolWBTC.address,
-        6,
-      )) as PriceCalculator
-    await priceCalculator.deployed()
 
     await fakeWBTC
       .connect(alice)

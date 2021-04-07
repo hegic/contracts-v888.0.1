@@ -1,38 +1,30 @@
-import {ethers} from "hardhat"
+import {ethers, deployments} from "hardhat"
 import {BigNumber as BN, Signer} from "ethers"
 import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {HegicPool} from "../../typechain/HegicPool"
-import {FakeWbtc} from "../../typechain/FakeWbtc"
+import {Erc20Mock} from "../../typechain/Erc20Mock"
 
 chai.use(solidity)
 const {expect} = chai
 
 describe("HegicPool", async () => {
   let hegicPool: HegicPool
-  let fakeWBTC: FakeWbtc
+  let fakeWBTC: Erc20Mock
   let deployer: Signer
   let alice: Signer
 
   beforeEach(async () => {
+    await deployments.fixture()
     ;[deployer, alice] = await ethers.getSigners()
 
-    const fakeWbtcFactory = await ethers.getContractFactory("FakeWBTC")
-    fakeWBTC = (await fakeWbtcFactory.deploy()) as FakeWbtc
-    await fakeWBTC.deployed()
+    fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
+    hegicPool = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+
     await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
-
-    const hegicPoolFactory = await ethers.getContractFactory("HegicPool")
-    hegicPool = (await hegicPoolFactory.deploy(
-      await fakeWBTC.address,
-      "writeWBTC",
-      "wWBTC",
-    )) as HegicPool
-    await hegicPool.deployed()
-
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicPool.address, await ethers.constants.MaxUint256)
+      .approve(hegicPool.address, ethers.constants.MaxUint256)
   })
 
   describe("constructor & settings", async () => {
