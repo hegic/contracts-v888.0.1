@@ -1,4 +1,4 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {HardhatRuntimeEnvironment} from 'hardhat/types'
 import {HegicPool} from "../typechain/HegicPool"
 import {HegicOptions} from "../typechain/HegicOptions"
 

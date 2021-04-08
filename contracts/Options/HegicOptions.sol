@@ -50,19 +50,22 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      */
     constructor(
         AggregatorV3Interface _priceProvider,
-        IHegicLiquidityPool liquidityPool,
+        IPriceCalculator _pricer,
         IHegicLiquidityPool _stablePool,
+        IHegicLiquidityPool liquidityPool,
         IHegicStaking putSettlementFeeRecipient,
         IHegicStaking callSettlementFeeRecipient,
-        ERC20 _token,
         ERC20 _stable,
+        ERC20 _token,
         string memory name,
         string memory symbol
     ) ERC721(name, symbol) {
-        pool[OptionType.Call] = liquidityPool;
-        pool[OptionType.Put] = _stablePool;
-        settlementFeeRecipient[OptionType.Call] = callSettlementFeeRecipient;
-        settlementFeeRecipient[OptionType.Put] = putSettlementFeeRecipient;
+        setPools(_stablePool, liquidityPool);
+        setSettlementFeeRecipients(
+            putSettlementFeeRecipient,
+            callSettlementFeeRecipient
+        );
+        priceCalculator = _pricer;
         token[OptionType.Call] = _token;
         token[OptionType.Put] = _stable;
         priceProvider = _priceProvider;
@@ -82,21 +85,29 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
     /**
      * @notice Used for changing settlementFeeRecipient
-     * @param recipientPut  New settlementFee recipient address
-     * @param recipientCall New settlementFee recipient address
+     * @param putRecipient  New settlementFee recipient address
+     * @param callRecipient New settlementFee recipient address
      */
-    function updateSettlementFeeRecipients(
-        IHegicStaking recipientPut,
-        IHegicStaking recipientCall
-    ) external onlyOwner {
-        require(address(recipientPut) != address(0));
-        require(address(recipientCall) != address(0));
-        settlementFeeRecipient[OptionType.Put] = recipientPut;
-        settlementFeeRecipient[OptionType.Call] = recipientCall;
+    function setSettlementFeeRecipients(
+        IHegicStaking putRecipient,
+        IHegicStaking callRecipient
+    ) public onlyOwner {
+        require(address(putRecipient) != address(0));
+        require(address(callRecipient) != address(0));
+        settlementFeeRecipient[OptionType.Put] = putRecipient;
+        settlementFeeRecipient[OptionType.Call] = callRecipient;
     }
 
-    function updatePriceCalculator(IPriceCalculator pc) external onlyOwner {
+    function setPriceCalculator(IPriceCalculator pc) public onlyOwner {
         priceCalculator = pc;
+    }
+
+    function setPools(IHegicLiquidityPool putPool, IHegicLiquidityPool callPool)
+        public
+        onlyOwner
+    {
+        pool[OptionType.Call] = callPool;
+        pool[OptionType.Put] = putPool;
     }
 
     /**

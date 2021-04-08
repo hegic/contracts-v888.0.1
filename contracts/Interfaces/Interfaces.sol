@@ -135,8 +135,6 @@ interface IHegicOptions is IERC721 {
         State state;
         uint256 strike;
         uint256 amount;
-        // uint256 lockedAmount;
-        // uint256 premium;
         uint256 expiration;
         OptionType optionType;
         uint256 lockedLiquidityID;

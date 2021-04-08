@@ -90,7 +90,7 @@ describe("HegicOptions", async () => {
   describe("constructor & settings", async () => {
     it("should set all initial state", async () => {
       expect(await hegicOptions.priceCalculator()).to.be.eq(
-        ethers.constants.AddressZero,
+        priceCalculator.address,
       )
       expect(await hegicOptions.pool(BN.from(1))).to.eq(hegicPoolUSDC.address)
       expect(await hegicOptions.pool(BN.from(2))).to.eq(hegicPoolWBTC.address)
@@ -131,12 +131,12 @@ describe("HegicOptions", async () => {
     })
   })
 
-  describe("updateSettlementFeeRecipients", async () => {
+  describe("setSettlementFeeRecipients", async () => {
     it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicOptions
           .connect(alice)
-          .updateSettlementFeeRecipients(
+          .setSettlementFeeRecipients(
             await alice.getAddress(),
             await bob.getAddress(),
           ),
@@ -145,7 +145,7 @@ describe("HegicOptions", async () => {
 
     it("should revert if zero address is given for recipientPut", async () => {
       await expect(
-        hegicOptions.updateSettlementFeeRecipients(
+        hegicOptions.setSettlementFeeRecipients(
           ethers.constants.AddressZero,
           await bob.getAddress(),
         ),
@@ -154,7 +154,7 @@ describe("HegicOptions", async () => {
 
     it("should revert if zero address is given for recipientCall", async () => {
       await expect(
-        hegicOptions.updateSettlementFeeRecipients(
+        hegicOptions.setSettlementFeeRecipients(
           await alice.getAddress(),
           ethers.constants.AddressZero,
         ),
@@ -162,7 +162,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should update the settlement fee recipients", async () => {
-      await hegicOptions.updateSettlementFeeRecipients(
+      await hegicOptions.setSettlementFeeRecipients(
         await alice.getAddress(),
         await bob.getAddress(),
       )
@@ -177,21 +177,21 @@ describe("HegicOptions", async () => {
     })
   })
 
-  describe("updatePriceCalculator", async () => {
+  describe("setPriceCalculator", async () => {
     it("should revert if the caller is not the owner", async () => {
       await expect(
         hegicOptions
           .connect(alice)
-          .updatePriceCalculator(await priceCalculator.address),
+          .setPriceCalculator(await priceCalculator.address),
       ).to.be.revertedWith("caller is not the owner")
     })
 
     it("should update the priceCalculator correctly", async () => {
       const priceCalculatorBefore = await hegicOptions.priceCalculator()
-      expect(priceCalculatorBefore).to.be.eq(ethers.constants.AddressZero)
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      expect(priceCalculatorBefore).to.be.eq(priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await alice.getAddress())
       const priceCalculatorAfter = await hegicOptions.priceCalculator()
-      expect(priceCalculatorAfter).to.be.eq(await priceCalculator.address)
+      expect(priceCalculatorAfter).to.be.eq(await alice.getAddress())
     })
   })
 
@@ -214,13 +214,13 @@ describe("HegicOptions", async () => {
       ).to.be.revertedWith("Wrong option type")
     })
     it("should set the strike to the current price if 0 is given", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(await alice.getAddress(), 1209600, 1, 0, 1)
       const option = await hegicOptions.options(BN.from(0))
       expect(option.strike).to.eq(BN.from(50000))
     })
     it("should create a put correctly", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -239,7 +239,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should create a call correctly", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -258,7 +258,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should emit a Create event with correct values", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
 
       await expect(
         hegicOptions.createFor(await alice.getAddress(), 1209600, 1, 50000, 2),
@@ -270,7 +270,7 @@ describe("HegicOptions", async () => {
 
   describe("exercise", async () => {
     it("should revert if the option exerciser is not approved or the owner", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -285,7 +285,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should revert if the option has expired", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -305,7 +305,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should revert if the option is in the wrong state", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -320,7 +320,7 @@ describe("HegicOptions", async () => {
     })
 
     it("should set the option state to exercised", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -336,7 +336,7 @@ describe("HegicOptions", async () => {
     xit("should pay any profits", async () => {})
 
     it("should emit a Exercise event with correct values", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -353,7 +353,7 @@ describe("HegicOptions", async () => {
 
   describe("unlock", async () => {
     it("should revert if the option has not expired", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -367,7 +367,7 @@ describe("HegicOptions", async () => {
       )
     })
     it("should revert if the option is not active", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -386,7 +386,7 @@ describe("HegicOptions", async () => {
       )
     })
     it("should set the option state to Expired", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,
@@ -405,7 +405,7 @@ describe("HegicOptions", async () => {
     })
     xit("should unlock liquidity from the pool", async () => {})
     it("should emit an Expire event with correct values", async () => {
-      await hegicOptions.updatePriceCalculator(await priceCalculator.address)
+      await hegicOptions.setPriceCalculator(await priceCalculator.address)
       await hegicOptions.createFor(
         await alice.getAddress(),
         1209600,

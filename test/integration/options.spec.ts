@@ -56,8 +56,6 @@ describe("Options", async () => {
       await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
     )
 
-    await hegicOptions.updatePriceCalculator(await priceCalculator.address)
-
     await fakeWBTC
       .connect(alice)
       .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)
