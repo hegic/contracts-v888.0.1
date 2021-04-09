@@ -48,7 +48,7 @@ describe("Options", async () => {
 
     await fakeUSDC.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+      await ethers.utils.parseUnits("100000000", await fakeUSDC.decimals()),
     )
 
     await fakeWBTC.mintTo(
@@ -85,9 +85,9 @@ describe("Options", async () => {
       .connect(alice)
       .provideFrom(
         await alice.getAddress(),
-        await ethers.utils.parseUnits("1000", await fakeUSDC.decimals()),
+        await ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
         true,
-        await ethers.utils.parseUnits("1000", await fakeUSDC.decimals()),
+        await ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
       )
   })
   interface Fees {
@@ -111,7 +111,7 @@ describe("Options", async () => {
   describe("Buying a call option with lots in the staking pool", async () => {
     beforeEach(async () => {
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
-      strike = BN.from(50000)
+      strike = BN.from(50000e8)
       aliceWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await alice.getAddress(),
       )
@@ -123,7 +123,6 @@ describe("Options", async () => {
       )
       lockedAmountBefore = await hegicPoolWBTC.lockedAmount()
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
-
       await fakeHegic
         .connect(alice)
         .approve(
@@ -189,8 +188,9 @@ describe("Options", async () => {
   describe("Buying a call option with no lots in the staking pool", async () => {
     beforeEach(async () => {
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
-      strike = BN.from(50000)
+      strike = BN.from(50000e8)
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
+
       await hegicOptions
         .connect(alice)
         .createFor(
@@ -217,7 +217,7 @@ describe("Options", async () => {
         )
       await hegicStakingUSDC.connect(alice).buy(1)
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
-      strike = BN.from(50000)
+      strike = BN.from(50000e8)
       aliceUSDCBalanceBefore = await fakeUSDC.balanceOf(
         await alice.getAddress(),
       )
@@ -226,6 +226,7 @@ describe("Options", async () => {
       )
       lockedAmountBefore = await hegicPoolUSDC.lockedAmount()
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
+
       await hegicOptions
         .connect(alice)
         .createFor(
@@ -238,8 +239,8 @@ describe("Options", async () => {
 
       amountToLock = amount
         .mul(strike)
-        .mul(BN.from(10).pow(6)) // BASE_TOKEN_DECIMALS
-        .div(BN.from(10).pow(4)) // STABLE_TOKEN_DECIMALS
+        .mul(BN.from(10).pow(0)) // STABLE_TOKEN_DECIMALS
+        .div(BN.from(10).pow(2)) // BASE_TOKEN_DECIMALS
         .div(BN.from(10).pow(8)) // PRICE_DECIMALS
     })
     it("should create the put option", async () => {
@@ -279,8 +280,9 @@ describe("Options", async () => {
         await deployer.getAddress(),
       )
       amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
-      strike = BN.from(50000)
+      strike = BN.from(50000e8)
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
+
       await hegicOptions
         .connect(alice)
         .createFor(
@@ -290,12 +292,21 @@ describe("Options", async () => {
           strike,
           BN.from(1),
         )
+      const poolTotalBalance = await hegicPoolWBTC.totalBalance()
+      const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
+      const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
+
+      hedgePremium = await fees.premium
+        .mul(poolHedgedBalance)
+        .div(poolTotalBalance)
+
+      hedgeFee = await hedgePremium.mul(poolHedgeFeeRate).div(BN.from(100))
     })
     it("should send the hedge fee and settlement fee to the deployer address", async () => {
       // TODO verify there is no fee
-      expect(deployerUSDCBalanceBefore.add(fees.settlementFee)).to.eq(
-        await fakeUSDC.balanceOf(await deployer.getAddress()),
-      )
+      expect(
+        deployerUSDCBalanceBefore.add(fees.settlementFee).add(hedgeFee),
+      ).to.eq(await fakeUSDC.balanceOf(await deployer.getAddress()))
     })
   })
   xdescribe("Exercising a call option", async () => {})

@@ -44,7 +44,7 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     contract: 'PriceProviderMock',
     from: deployer,
     log: true,
-    args: [50000],
+    args: [50000e8],
   })
 
   const WBTCPricer = await deploy('WBTCPriceCalculator', {

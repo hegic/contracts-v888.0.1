@@ -107,10 +107,10 @@ describe("PriceCalculator", async () => {
         const feeResponse = await priceCalculator.fees(
           BN.from(604800),
           BN.from(100),
-          BN.from(50000),
+          BN.from(50000e8),
           BN.from(1),
         )
-        expect(feeResponse.settlementFee).to.be.eq(BN.from(1))
+        expect(feeResponse.settlementFee).to.be.eq(BN.from(50000))
         expect(feeResponse.premium).to.be.eq(BN.from(0))
       })
 
@@ -118,7 +118,7 @@ describe("PriceCalculator", async () => {
         const feeResponse = await priceCalculator.fees(
           BN.from(604800),
           BN.from(100),
-          BN.from(50000),
+          BN.from(50000e8),
           BN.from(2),
         )
         expect(feeResponse.settlementFee).to.be.eq(BN.from(1))

@@ -88,7 +88,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
             "Only ATM options are currently available"
         );
 
-        settlementFee = getSettlementFee(amount);
+        settlementFee = getSettlementFee(amount, optionType);
         premium = getPeriodFee(amount, period, strike, optionType);
     }
 
@@ -97,12 +97,13 @@ contract PriceCalculator is IPriceCalculator, Ownable {
      * @param amount Option amount
      * @return fee Settlement fee amount
      */
-    function getSettlementFee(uint256 amount)
-        internal
-        pure
-        returns (uint256 fee)
-    {
-        return amount / 100;
+    function getSettlementFee(
+        uint256 amount,
+        IHegicOptions.OptionType optionType
+    ) internal view returns (uint256 fee) {
+        if (optionType == IHegicOptions.OptionType.Call) return amount / 100;
+        if (optionType == IHegicOptions.OptionType.Put)
+            return (amount * _currentPrice()) / PRICE_DECIMALS / 100;
     }
 
     /**

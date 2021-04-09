@@ -37,9 +37,7 @@ pragma solidity 0.8.3;
 import "../Interfaces/Interfaces.sol";
 
 contract Facade is Ownable {
-    mapping(IERC20 => bool) supported;
     mapping(IERC20 => IHegicOptions) optionController;
-    mapping(IERC20 => IHegicLiquidityPool) poolController;
 
     IWETH weth;
 
@@ -49,31 +47,18 @@ contract Facade is Ownable {
         uint256 amount,
         uint256 strike,
         IHegicOptions.OptionType optionType
-    ) external payable withSupported(token) {
+    ) external payable {
         _wrapTo(token);
         IHegicOptions options = optionController[token];
         options.createFor(msg.sender, period, amount, strike, optionType);
     }
 
-    modifier withSupported(IERC20 token) {
-        require(supported[token], "Unsupported token");
-        _;
-    }
-
-    function append(
-        IERC20 token,
-        IHegicOptions options,
-        IHegicLiquidityPool pool
-    ) external onlyOwner {
-        supported[token] = true;
+    function append(IERC20 token, IHegicOptions options) external onlyOwner {
         optionController[token] = options;
-        poolController[token] = pool;
     }
 
-    function stop(IERC20 token) external onlyOwner withSupported(token) {
-        delete supported[token];
+    function stop(IERC20 token) external onlyOwner {
         delete optionController[token];
-        delete poolController[token];
     }
 
     function _wrapTo(IERC20 token) internal {
@@ -88,10 +73,10 @@ contract Facade is Ownable {
      * @param optionIDs array of options
      */
     function unlockAll(IERC20 token, uint256[] calldata optionIDs) external {
-        revert("TODO");
-        // uint arrayLength = optionIDs.length;
-        // for (uint256 i = 0; i < arrayLength; i++) {
-        //     unlock(optionIDs[i]);
-        // }
+        uint256 arrayLength = optionIDs.length;
+        IHegicOptions options = optionController[token];
+        for (uint256 i = 0; i < arrayLength; i++) {
+            options.unlock(optionIDs[i]);
+        }
     }
 }

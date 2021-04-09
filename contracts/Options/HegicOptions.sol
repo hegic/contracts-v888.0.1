@@ -73,12 +73,10 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         uint256 baseDecimals = _token.decimals();
         uint256 stableDecimals = _stable.decimals();
-        uint256 diff =
-            baseDecimals > stableDecimals
-                ? baseDecimals - stableDecimals
-                : stableDecimals - baseDecimals;
-        baseDecimals -= diff;
-        stableDecimals -= diff;
+        uint256 min =
+            baseDecimals < stableDecimals ? baseDecimals : stableDecimals;
+        baseDecimals -= min;
+        stableDecimals -= min;
         BASE_TOKEN_DECIMALS = 10**baseDecimals;
         STABLE_TOKEN_DECIMALS = 10**stableDecimals;
     }
@@ -184,15 +182,23 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Put);
+
         uint256 lockedAmount =
-            (amount * strike * BASE_TOKEN_DECIMALS) /
-                STABLE_TOKEN_DECIMALS /
+            (amount * strike * STABLE_TOKEN_DECIMALS) /
+                BASE_TOKEN_DECIMALS /
                 PRICE_DECIMALS;
 
         optionID = options.length;
+
+        token[OptionType.Put].safeTransferFrom(
+            msg.sender,
+            address(this),
+            settlementFee + premium
+        );
+
+        settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
         uint256 lockedLiquidityID =
             pool[OptionType.Put].lock(lockedAmount, premium);
-
         options.push(
             Option(
                 State.Active,
@@ -203,13 +209,6 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
                 lockedLiquidityID
             )
         );
-
-        token[OptionType.Put].safeTransferFrom(
-            msg.sender,
-            address(this),
-            settlementFee + premium
-        );
-        settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
 
         _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
@@ -261,7 +260,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      * @notice Unlock funds locked in the expired options
      * @param optionID ID of the option
      */
-    function unlock(uint256 optionID) external {
+    function unlock(uint256 optionID) external override {
         Option storage option = options[optionID];
         require(
             option.expiration < block.timestamp,
