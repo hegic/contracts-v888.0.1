@@ -22,28 +22,28 @@ import "./ERC20Mock.sol";
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
 
 contract UniswapRouterMock {
-    ERC20Mock immutable WBTC;
-    ERC20Mock immutable USDC;
+    ERC20Mock public immutable WBTC;
+    ERC20Mock public immutable USDC;
     AggregatorV3Interface public immutable WBTCPriceProvider;
     AggregatorV3Interface public immutable ETHPriceProvider;
 
     constructor(
-        ERC20Mock _WBTC,
-        ERC20Mock _USDC,
-        AggregatorV3Interface WPP,
-        AggregatorV3Interface EPP
+        ERC20Mock _wbtc,
+        ERC20Mock _usdc,
+        AggregatorV3Interface wpp,
+        AggregatorV3Interface epp
     ) {
-        WBTC = _WBTC;
-        USDC = _USDC;
-        WBTCPriceProvider = WPP;
-        ETHPriceProvider = EPP;
+        WBTC = _wbtc;
+        USDC = _usdc;
+        WBTCPriceProvider = wpp;
+        ETHPriceProvider = epp;
     }
 
     function swapETHForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to,
-        uint256 deadline
+        uint256 /*deadline*/
     ) external payable returns (uint256[] memory amounts) {
         require(path.length == 2, "UniswapMock: wrong path");
         require(
@@ -71,100 +71,11 @@ contract UniswapRouterMock {
             (, int256 ethPrice, , , ) = ETHPriceProvider.latestRoundData();
             (, int256 wbtcPrice, , , ) = WBTCPriceProvider.latestRoundData();
             amount = (amountOut * uint256(wbtcPrice)) / uint256(ethPrice);
-        } else revert("UniswapMock: wrong path");
+        } else {
+            revert("UniswapMock: wrong path");
+        }
 
         amounts[0] = (amount * 103) / 100;
         amounts[1] = amountOut;
     }
-
-    // function factory() external pure returns (address);
-    // function WETH() external pure returns (address);
-
-    // function addLiquidity(
-    //     address tokenA,
-    //     address tokenB,
-    //     uint amountADesired,
-    //     uint amountBDesired,
-    //     uint amountAMin,
-    //     uint amountBMin,
-    //     address to,
-    //     uint deadline
-    // ) external returns (uint amountA, uint amountB, uint liquidity);
-    // function addLiquidityETH(
-    //     address token,
-    //     uint amountTokenDesired,
-    //     uint amountTokenMin,
-    //     uint amountETHMin,
-    //     address to,
-    //     uint deadline
-    // ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
-    // function removeLiquidity(
-    //     address tokenA,
-    //     address tokenB,
-    //     uint liquidity,
-    //     uint amountAMin,
-    //     uint amountBMin,
-    //     address to,
-    //     uint deadline
-    // ) external returns (uint amountA, uint amountB);
-    // function removeLiquidityETH(
-    //     address token,
-    //     uint liquidity,
-    //     uint amountTokenMin,
-    //     uint amountETHMin,
-    //     address to,
-    //     uint deadline
-    // ) external returns (uint amountToken, uint amountETH);
-    // function removeLiquidityWithPermit(
-    //     address tokenA,
-    //     address tokenB,
-    //     uint liquidity,
-    //     uint amountAMin,
-    //     uint amountBMin,
-    //     address to,
-    //     uint deadline,
-    //     bool approveMax, uint8 v, bytes32 r, bytes32 s
-    // ) external returns (uint amountA, uint amountB);
-    // function removeLiquidityETHWithPermit(
-    //     address token,
-    //     uint liquidity,
-    //     uint amountTokenMin,
-    //     uint amountETHMin,
-    //     address to,
-    //     uint deadline,
-    //     bool approveMax, uint8 v, bytes32 r, bytes32 s
-    // ) external returns (uint amountToken, uint amountETH);
-    // function swapExactTokensForTokens(
-    //     uint amountIn,
-    //     uint amountOutMin,
-    //     address[] calldata path,
-    //     address to,
-    //     uint deadline
-    // ) external returns (uint[] memory amounts);
-    // function swapTokensForExactTokens(
-    //     uint amountOut,
-    //     uint amountInMax,
-    //     address[] calldata path,
-    //     address to,
-    //     uint deadline
-    // ) external returns (uint[] memory amounts);
-    // function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-    //     external
-    //     payable
-    //     returns (uint[] memory amounts);
-    // function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-    //     external
-    //     returns (uint[] memory amounts);
-    // function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-    //     external
-    //     returns (uint[] memory amounts);
-    // function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
-    //     external
-    //     payable
-    //     returns (uint[] memory amounts);
-    //
-    // function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
-    // function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
-    // function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
-    // function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
 }

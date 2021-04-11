@@ -290,8 +290,11 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         } else if (option.optionType == OptionType.Put) {
             require(option.strike >= currentPrice, "Current price is too high");
             profit =
-                ((option.strike - currentPrice) * option.amount) /
-                PRICE_DECIMALS;
+                ((option.strike - currentPrice) *
+                    option.amount *
+                    STABLE_TOKEN_DECIMALS) /
+                PRICE_DECIMALS /
+                BASE_TOKEN_DECIMALS;
         }
 
         pool[option.optionType].send(optionID, holder, profit);

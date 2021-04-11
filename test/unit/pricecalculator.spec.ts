@@ -34,7 +34,7 @@ describe("PriceCalculator", async () => {
 
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)
+      .approve(hegicPoolWBTC.address, ethers.constants.MaxUint256)
 
     await hegicPoolWBTC
       .connect(alice)

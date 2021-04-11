@@ -34,6 +34,7 @@ interface IHegicLiquidityPool {
         uint256 unhedgePremium;
         bool locked;
     }
+
     struct Tranche {
         TrancheState state;
         uint256 share;
@@ -41,6 +42,7 @@ interface IHegicLiquidityPool {
         uint256 creationTimestamp;
         bool hedged;
     }
+
     enum TrancheState {Invalid, Open, Closed}
 
     event Profit(
@@ -48,13 +50,16 @@ interface IHegicLiquidityPool {
         uint256 hedgeAmount,
         uint256 unhedgeAmount
     );
+
     event Loss(uint256 indexed id, uint256 hedgeAmount, uint256 unhedgeAmount);
+
     event Provide(
         address indexed account,
         uint256 amount,
         uint256 writeAmount,
         bool hedging
     );
+
     event Withdraw(address indexed account, uint256 tranchesID);
 
     function lock(uint256 amount, uint256 premium)
@@ -73,11 +78,7 @@ interface IHegicLiquidityPool {
 
     function setHedgePool(address value) external;
 
-    function totalBalance() external view returns (uint256 amount);
-
-    function lockedAmount() external view returns (uint256 amount);
-
-    function token() external view returns (IERC20);
+    function withdraw(uint256 trancheID) external returns (uint256 amount);
 
     function provideFrom(
         address account,
@@ -86,11 +87,15 @@ interface IHegicLiquidityPool {
         uint256 minShare
     ) external returns (uint256 share);
 
-    function withdraw(uint256 trancheID) external returns (uint256 amount);
-
     function withdrawWithoutHedge(uint256 trancheID)
         external
         returns (uint256 amount);
+
+    function totalBalance() external view returns (uint256 amount);
+
+    function lockedAmount() external view returns (uint256 amount);
+
+    function token() external view returns (IERC20);
 
     function lockedLiquidity(uint256 id)
         external
@@ -101,7 +106,6 @@ interface IHegicLiquidityPool {
             uint256 unhedgePremium,
             bool locked
         );
-    // function unlockPremium(uint256 amount) external;
 }
 
 interface IHegicStaking {
@@ -114,9 +118,9 @@ interface IHegicStaking {
 
     function sell(uint256 amount) external;
 
-    function profitOf(address account) external view returns (uint256);
-
     function sendProfit(uint256 amount) external;
+
+    function profitOf(address account) external view returns (uint256);
 }
 
 interface IHegicOptions is IERC721 {
@@ -126,6 +130,7 @@ interface IHegicOptions is IERC721 {
         uint256 settlementFee,
         uint256 premium
     );
+
     event Exercise(uint256 indexed id, uint256 profit);
     event Expire(uint256 indexed id);
     enum State {Inactive, Active, Exercised, Expired}
@@ -139,6 +144,8 @@ interface IHegicOptions is IERC721 {
         OptionType optionType;
         uint256 lockedLiquidityID;
     }
+
+    function unlock(uint256) external;
 
     function createFor(
         address account,
@@ -155,14 +162,10 @@ interface IHegicOptions is IERC721 {
             State state,
             uint256 strike,
             uint256 amount,
-            // uint256 lockedAmount,
-            // uint256 premium,
             uint256 expiration,
             OptionType optionType,
             uint256 lockedLiquidityID
         );
-
-    function unlock(uint256) external;
 }
 
 interface IPriceCalculator {

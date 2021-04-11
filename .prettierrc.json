@@ -9,9 +9,9 @@
     {
       "files": "*.ts",
       "options": {
-          "parser": "typescript",
-          "trailingComma": "all",
-          "arrowParens": "always"
+        "parser": "typescript",
+        "trailingComma": "all",
+        "arrowParens": "always"
       }
     },
     {
@@ -20,6 +20,7 @@
         "tabWidth": 4,
         "useTabs": false,
         "singleQuote": false,
+        "bracketSpacing": false,
         "explicitTypes": "always"
       }
     },

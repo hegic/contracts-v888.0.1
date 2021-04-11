@@ -43,51 +43,51 @@ describe("Options", async () => {
 
     await fakeHegic.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
+      ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
     )
 
     await fakeUSDC.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("100000000", await fakeUSDC.decimals()),
+      ethers.utils.parseUnits("100000000", await fakeUSDC.decimals()),
     )
 
     await fakeWBTC.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+      ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
     )
 
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)
+      .approve(hegicPoolWBTC.address, ethers.constants.MaxUint256)
 
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicOptions.address, await ethers.constants.MaxUint256)
+      .approve(hegicOptions.address, ethers.constants.MaxUint256)
 
     await hegicPoolWBTC
       .connect(alice)
       .provideFrom(
         await alice.getAddress(),
-        await ethers.utils.parseUnits("1000", await fakeWBTC.decimals()),
+        ethers.utils.parseUnits("1000", await fakeWBTC.decimals()),
         true,
-        await ethers.utils.parseUnits("1000", await fakeWBTC.decimals()),
+        ethers.utils.parseUnits("1000", await fakeWBTC.decimals()),
       )
 
     await fakeUSDC
       .connect(alice)
-      .approve(await hegicPoolUSDC.address, await ethers.constants.MaxUint256)
+      .approve(hegicPoolUSDC.address, ethers.constants.MaxUint256)
 
     await fakeUSDC
       .connect(alice)
-      .approve(await hegicOptions.address, await ethers.constants.MaxUint256)
+      .approve(hegicOptions.address, ethers.constants.MaxUint256)
 
     await hegicPoolUSDC
       .connect(alice)
       .provideFrom(
         await alice.getAddress(),
-        await ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
+        ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
         true,
-        await ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
+        ethers.utils.parseUnits("10000000", await fakeUSDC.decimals()),
       )
   })
   interface Fees {
@@ -110,13 +110,13 @@ describe("Options", async () => {
 
   describe("Buying a call option with lots in the staking pool", async () => {
     beforeEach(async () => {
-      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      amount = ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000e8)
       aliceWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await alice.getAddress(),
       )
       hegicPoolWBTCBalanceBefore = await fakeWBTC.balanceOf(
-        await hegicPoolWBTC.address,
+        hegicPoolWBTC.address,
       )
       deployerWBTCBalanceBefore = await fakeWBTC.balanceOf(
         await deployer.getAddress(),
@@ -125,10 +125,7 @@ describe("Options", async () => {
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
       await fakeHegic
         .connect(alice)
-        .approve(
-          await hegicStakingWBTC.address,
-          await ethers.constants.MaxUint256,
-        )
+        .approve(hegicStakingWBTC.address, ethers.constants.MaxUint256)
       await hegicStakingWBTC.connect(alice).buy(1)
 
       await hegicOptions
@@ -144,11 +141,9 @@ describe("Options", async () => {
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
       const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
 
-      hedgePremium = await fees.premium
-        .mul(poolHedgedBalance)
-        .div(poolTotalBalance)
+      hedgePremium = fees.premium.mul(poolHedgedBalance).div(poolTotalBalance)
 
-      hedgeFee = await hedgePremium.mul(poolHedgeFeeRate).div(BN.from(100))
+      hedgeFee = hedgePremium.mul(poolHedgeFeeRate).div(BN.from(100))
     })
     it("should create the call option", async () => {
       const option = await hegicOptions.options(BN.from(0))
@@ -164,11 +159,11 @@ describe("Options", async () => {
     })
     it("should add the premium and subtract the hedge fee from the HegicPool", async () => {
       expect(hegicPoolWBTCBalanceBefore.add(fees.premium).sub(hedgeFee)).to.eq(
-        await fakeWBTC.balanceOf(await hegicPoolWBTC.address),
+        await fakeWBTC.balanceOf(hegicPoolWBTC.address),
       )
     })
     it("should increase the balance of HegicStaking by the settlement fee", async () => {
-      expect(await fakeWBTC.balanceOf(await hegicStakingWBTC.address)).to.eq(
+      expect(await fakeWBTC.balanceOf(hegicStakingWBTC.address)).to.eq(
         fees.settlementFee,
       )
     })
@@ -187,7 +182,7 @@ describe("Options", async () => {
   })
   describe("Buying a call option with no lots in the staking pool", async () => {
     beforeEach(async () => {
-      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      amount = ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000e8)
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 2)
 
@@ -211,18 +206,15 @@ describe("Options", async () => {
     beforeEach(async () => {
       await fakeHegic
         .connect(alice)
-        .approve(
-          await hegicStakingUSDC.address,
-          await ethers.constants.MaxUint256,
-        )
+        .approve(hegicStakingUSDC.address, ethers.constants.MaxUint256)
       await hegicStakingUSDC.connect(alice).buy(1)
-      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      amount = ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000e8)
       aliceUSDCBalanceBefore = await fakeUSDC.balanceOf(
         await alice.getAddress(),
       )
       hegicStakingUSDCBalanceBefore = await fakeUSDC.balanceOf(
-        await hegicStakingUSDC.address,
+        hegicStakingUSDC.address,
       )
       lockedAmountBefore = await hegicPoolUSDC.lockedAmount()
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
@@ -257,7 +249,7 @@ describe("Options", async () => {
     })
     it("should increase the balance of the USDC Staking Contract by the settlement fee", async () => {
       expect(hegicStakingUSDCBalanceBefore.add(fees.settlementFee)).to.eq(
-        await fakeUSDC.balanceOf(await hegicStakingUSDC.address),
+        await fakeUSDC.balanceOf(hegicStakingUSDC.address),
       )
     })
     it("should increase the lockedAmount in the Liquidity Pool", async () => {
@@ -279,7 +271,7 @@ describe("Options", async () => {
       deployerUSDCBalanceBefore = await fakeUSDC.balanceOf(
         await deployer.getAddress(),
       )
-      amount = await ethers.utils.parseUnits("15", await fakeWBTC.decimals())
+      amount = ethers.utils.parseUnits("15", await fakeWBTC.decimals())
       strike = BN.from(50000e8)
       fees = await priceCalculator.fees(ONE_DAY, amount, strike, 1)
 
@@ -296,11 +288,9 @@ describe("Options", async () => {
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
       const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
 
-      hedgePremium = await fees.premium
-        .mul(poolHedgedBalance)
-        .div(poolTotalBalance)
+      hedgePremium = fees.premium.mul(poolHedgedBalance).div(poolTotalBalance)
 
-      hedgeFee = await hedgePremium.mul(poolHedgeFeeRate).div(BN.from(100))
+      hedgeFee = hedgePremium.mul(poolHedgeFeeRate).div(BN.from(100))
     })
     it("should send the hedge fee and settlement fee to the deployer address", async () => {
       // TODO verify there is no fee

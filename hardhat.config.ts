@@ -49,11 +49,6 @@ const config: HardhatUserConfig = {
         default: 0,
     }
   },
-  watcher: {
-    compilation: {
-      tasks: ["compile"],
-    }
-  }
 }
 
 export default config

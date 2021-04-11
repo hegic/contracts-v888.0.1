@@ -43,7 +43,7 @@ describe("HegicPool", async () => {
       expect(await hegicPool.hedgePool()).to.be.eq(
         BN.from(await deployer.getAddress()),
       )
-      expect(await hegicPool.token()).to.be.eq(await fakeWBTC.address)
+      expect(await hegicPool.token()).to.be.eq(fakeWBTC.address)
     })
   })
 
@@ -127,15 +127,26 @@ describe("HegicPool", async () => {
       expect(ll.locked).to.eq(true)
     })
 
-    xit("should transfer the hedge fee to the hedge pool", async () => {
+    it("should transfer the hedge fee to the hedge pool", async () => {
       await hegicPool.setHedgePool(await alice.getAddress())
-      const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
-      expect(balanceBefore).to.equal(BN.from(0))
+      const hedgePool = await hegicPool.hedgePool()
+      const balanceBefore = await fakeWBTC.balanceOf(hedgePool)
+      const premium = BN.from(1e6)
+      await fakeWBTC.mint(premium)
+      await fakeWBTC.approve(hegicPool.address, ethers.constants.MaxUint256)
 
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), premium)
 
-      const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
-      expect(balanceAfter).to.equal(BN.from(0))
+      const poolTotalBalance = await hegicPool.totalBalance()
+      const poolHedgedBalance = await hegicPool.hedgedBalance()
+      const poolHedgeFeeRate = await hegicPool.hedgeFeeRate()
+      const hedgePremium = premium.mul(poolHedgedBalance).div(poolTotalBalance)
+      const expectedHedgeFee = hedgePremium
+        .mul(poolHedgeFeeRate)
+        .div(BN.from(100))
+
+      const balanceAfter = await fakeWBTC.balanceOf(hedgePool)
+      expect(balanceAfter.sub(balanceBefore)).to.equal(expectedHedgeFee)
     })
   })
 
@@ -410,7 +421,7 @@ describe("HegicPool", async () => {
         BN.from(2000000).toNumber(),
       ])
       await ethers.provider.send("evm_mine", [])
-      await expect(hegicPool.withdraw(BN.from(0)))
+      expect(hegicPool.withdraw(BN.from(0)))
       await expect(hegicPool.withdraw(BN.from(0))).to.be.reverted
     })
 
