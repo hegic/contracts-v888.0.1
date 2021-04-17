@@ -11,7 +11,8 @@ chai.use(solidity)
 const {expect} = chai
 
 describe("PriceCalculator", async () => {
-  let hegicPoolWBTC: HegicPool
+  // let hegicPoolWBTC: HegicPool
+  // let hegicPoolUSDC: HegicPool
   let priceCalculator: PriceCalculator
   let fakeWBTC: Erc20Mock
   let fakePriceProvider: PriceProviderMock
@@ -22,7 +23,20 @@ describe("PriceCalculator", async () => {
     ;[, alice] = await ethers.getSigners()
 
     fakeWBTC = (await ethers.getContract("WBTC")) as Erc20Mock
-    hegicPoolWBTC = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+
+    const hegicPoolWBTC = (await ethers.getContract(
+      "HegicWBTCPool",
+    )) as HegicPool
+    const hegicPoolUSDC = (await ethers.getContract(
+      "HegicUSDCPool",
+    )) as HegicPool
+
+    const USDC = (await ethers.getContract("USDC")) as Erc20Mock
+    await USDC.connect(alice).approve(
+      hegicPoolUSDC.address,
+      ethers.constants.MaxUint256,
+    )
+
     fakePriceProvider = (await ethers.getContract(
       "WBTCPriceProvider",
     )) as PriceProviderMock
@@ -31,6 +45,7 @@ describe("PriceCalculator", async () => {
     )) as PriceCalculator
 
     await fakeWBTC.mintTo(await alice.getAddress(), BN.from(10).pow(20))
+    await USDC.connect(alice).mint(BN.from(10).pow(15))
 
     await fakeWBTC
       .connect(alice)
@@ -38,12 +53,11 @@ describe("PriceCalculator", async () => {
 
     await hegicPoolWBTC
       .connect(alice)
-      .provideFrom(
-        await alice.getAddress(),
-        BN.from(100000),
-        true,
-        BN.from(100000),
-      )
+      .provideFrom(await alice.getAddress(), 100000, true, 100000)
+
+    await hegicPoolUSDC
+      .connect(alice)
+      .provideFrom(await alice.getAddress(), 1e12, true, 1e12)
   })
 
   describe("constructor & settings", async () => {
@@ -58,7 +72,7 @@ describe("PriceCalculator", async () => {
         BN.from(20000),
       )
       expect(await priceCalculator.utilizationRate()).to.be.eq(
-        BN.from(200000000),
+        BN.from(100000000),
       )
       expect(await priceCalculator.priceProvider()).to.be.eq(
         fakePriceProvider.address,

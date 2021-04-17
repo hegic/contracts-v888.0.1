@@ -43,18 +43,22 @@ contract PriceCalculator is IPriceCalculator, Ownable {
 
     uint256[3] public impliedVolRate;
     uint256 internal constant PRICE_DECIMALS = 1e8;
+    uint256 internal constant PRICE_MODIFIER_DECIMALS = 1e8;
     uint256 internal immutable DECIMALS_DIFF;
-    uint256 public utilizationRate = 2e8;
+    uint256 public utilizationRate = 1e8;
     AggregatorV3Interface public priceProvider;
-    IHegicLiquidityPool pool;
+    IHegicLiquidityPool assetPool;
+    IHegicLiquidityPool stablePool;
 
     constructor(
         uint256[3] memory initialRates,
         AggregatorV3Interface _priceProvider,
-        IHegicLiquidityPool _pool,
+        IHegicLiquidityPool _assetPool,
+        IHegicLiquidityPool _stablePool,
         uint8 tokenDecimalsDiff
     ) {
-        pool = _pool;
+        assetPool = _assetPool;
+        stablePool = _stablePool;
         priceProvider = _priceProvider;
         impliedVolRate = initialRates;
         DECIMALS_DIFF = 10**tokenDecimalsDiff;
@@ -87,9 +91,10 @@ contract PriceCalculator is IPriceCalculator, Ownable {
             strike == currentPrice,
             "Only ATM options are currently available"
         );
-
-        settlementFee = getSettlementFee(amount, optionType);
-        premium = getPeriodFee(amount, period, strike, optionType);
+        return (
+            getSettlementFee(amount, optionType, currentPrice),
+            getPeriodFee(amount, period, currentPrice, optionType)
+        );
     }
 
     /**
@@ -99,78 +104,62 @@ contract PriceCalculator is IPriceCalculator, Ownable {
      */
     function getSettlementFee(
         uint256 amount,
-        IHegicOptions.OptionType optionType
+        IHegicOptions.OptionType optionType,
+        uint256 currentPrice
     ) internal view returns (uint256 fee) {
         if (optionType == IHegicOptions.OptionType.Call) return amount / 100;
         if (optionType == IHegicOptions.OptionType.Put)
-            return (amount * _currentPrice()) / PRICE_DECIMALS / 100;
+            return (amount * currentPrice) / PRICE_DECIMALS / 100;
     }
 
     /**
      * @notice Calculates periodFee
      * @param amount Option amount
      * @param period Option period in seconds (1 days <= period <= 12 weeks)
-     * @param strike Strike price of the option
      * @return fee Period fee amount
-     *
-     * amount < 1e30        |
-     * impliedVolRate < 1e10| => amount * impliedVolRate * strike < 1e60 < 2^uint256
-     * strike < 1e20 ($1T)  |
-     *
-     * in case amount * impliedVolRate * strike >= 2^256
-     * transaction will be reverted by the SafeMath
      */
+
     function getPeriodFee(
         uint256 amount,
         uint256 period,
-        uint256 strike,
+        uint256 currentPrice,
         IHegicOptions.OptionType optionType
     ) internal view returns (uint256 fee) {
         if (optionType == IHegicOptions.OptionType.Put)
             return
-                amount
-                    .mul(_priceModifier(amount, period))
-                    .mul(strike)
-                    .div(PRICE_DECIMALS)
-                    .div(PRICE_DECIMALS)
-                    .div(DECIMALS_DIFF);
-        else if (optionType == IHegicOptions.OptionType.Call)
+                (amount *
+                    currentPrice *
+                    _priceModifier(amount, period, currentPrice, stablePool)) /
+                PRICE_MODIFIER_DECIMALS /
+                PRICE_DECIMALS /
+                DECIMALS_DIFF;
+        if (optionType == IHegicOptions.OptionType.Call)
             return
-                amount
-                    .mul(_priceModifier(amount, period))
-                    .mul(_currentPrice())
-                    .div(strike)
-                    .div(PRICE_DECIMALS);
+                (amount *
+                    _priceModifier(amount, period, currentPrice, assetPool)) /
+                PRICE_DECIMALS;
     }
 
-    function _priceModifier(uint256 amount, uint256 period)
-        internal
-        view
-        returns (uint256 iv)
-    {
+    function _priceModifier(
+        uint256 amount,
+        uint256 period,
+        uint256 currentPrice,
+        IHegicLiquidityPool pool
+    ) internal view returns (uint256 iv) {
         uint256 poolBalance = pool.totalBalance();
         require(poolBalance > 0, "Pool is empty");
 
         if (period < 1 weeks) iv = impliedVolRate[0];
         else if (period < 4 weeks) iv = impliedVolRate[1];
         else iv = impliedVolRate[2];
-        iv = iv.mul(period.sqrt());
-        uint256 utilization =
-            (pool.lockedAmount().add(amount)).mul(100e8).div(poolBalance);
+
+        iv *= period.sqrt();
+
+        uint256 lockedAmount = pool.lockedAmount() + amount;
+        uint256 utilization = (lockedAmount * 100e8) / poolBalance;
+
         if (utilization > 40e8) {
-            uint256 percentAbove =
-                (
-                    (pool.lockedAmount().add(amount)).mul(100e8).sub(
-                        poolBalance.mul(40e8)
-                    )
-                )
-                    .div(amount.mul(100e8));
-            if (percentAbove > 1) percentAbove = 1;
-            iv += iv
-                .mul(utilization.sub(40e8))
-                .mul(utilizationRate)
-                .div(40e16)
-                .mul(percentAbove);
+            iv += (iv * (utilization - 40e8) * utilizationRate) / 40e16;
         }
     }
 

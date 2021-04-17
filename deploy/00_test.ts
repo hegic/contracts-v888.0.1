@@ -1,81 +1,81 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {HardhatRuntimeEnvironment} from "hardhat/types"
 
 async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
-  const {deployments, getNamedAccounts} = hre;
-  const {deploy} = deployments;
-  const {deployer} = await getNamedAccounts();
+  const {deployments, getNamedAccounts} = hre
+  const {deploy} = deployments
+  const {deployer} = await getNamedAccounts()
 
-  const HEGIC = await deploy('HEGIC', {
-    contract: 'ERC20Mock',
+  const HEGIC = await deploy("HEGIC", {
+    contract: "ERC20Mock",
     from: deployer,
     log: true,
     args: ["HEGIC", "H", 18],
   })
 
-  const USDC = await deploy('USDC', {
-    contract: 'ERC20Mock',
+  const USDC = await deploy("USDC", {
+    contract: "ERC20Mock",
     from: deployer,
     log: true,
     args: ["USDC (Mock)", "USDC", 6],
   })
 
-  const WBTC = await deploy('WBTC', {
-    contract: 'ERC20Mock',
+  const WBTC = await deploy("WBTC", {
+    contract: "ERC20Mock",
     from: deployer,
     log: true,
     args: ["WBTC (Mock)", "WBTC", 8],
   })
 
-  const WBTCPool = await deploy('HegicWBTCPool', {
-    contract: 'HegicPool',
+  const WBTCPool = await deploy("HegicWBTCPool", {
+    contract: "HegicPool",
     from: deployer,
     log: true,
-    args: [WBTC.address, "writeWBTC", 'wWBTC'],
+    args: [WBTC.address, "writeWBTC", "wWBTC"],
   })
 
-  const USDCPool = await deploy('HegicUSDCPool', {
-    contract: 'HegicPool',
+  const USDCPool = await deploy("HegicUSDCPool", {
+    contract: "HegicPool",
     from: deployer,
     log: true,
-    args: [USDC.address, "writeUSDC", 'wUSDC'],
+    args: [USDC.address, "writeUSDC", "wUSDC"],
   })
 
-  const WBTCPriceProvider = await deploy('WBTCPriceProvider', {
-    contract: 'PriceProviderMock',
+  const WBTCPriceProvider = await deploy("WBTCPriceProvider", {
+    contract: "PriceProviderMock",
     from: deployer,
     log: true,
     args: [50000e8],
   })
 
-  const WBTCPricer = await deploy('WBTCPriceCalculator', {
-    contract: 'PriceCalculator',
+  const WBTCPricer = await deploy("WBTCPriceCalculator", {
+    contract: "PriceCalculator",
     from: deployer,
     log: true,
     args: [
       [9000, 10000, 20000],
       WBTCPriceProvider.address,
       WBTCPool.address,
+      USDCPool.address,
       6,
     ],
   })
 
-  const WBTCStaking = await deploy('WBTCStaking', {
-    contract: 'HegicStaking',
+  const WBTCStaking = await deploy("WBTCStaking", {
+    contract: "HegicStaking",
     from: deployer,
     log: true,
     args: [HEGIC.address, WBTC.address, "WBTC Staking", "WBTC S"],
   })
 
-  const USDCStaking = await deploy('USDCStaking', {
-    contract: 'HegicStaking',
+  const USDCStaking = await deploy("USDCStaking", {
+    contract: "HegicStaking",
     from: deployer,
     log: true,
     args: [HEGIC.address, USDC.address, "USDC Staking", "USDC S"],
   })
 
-
-  const WBTCOptions = await deploy('WBTCOptions', {
-    contract: 'HegicOptions',
+  const WBTCOptions = await deploy("WBTCOptions", {
+    contract: "HegicOptions",
     from: deployer,
     log: true,
     args: [
@@ -88,18 +88,23 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
       USDC.address,
       WBTC.address,
       "HegicOptions WBTC",
-      "HO_WBTC"
+      "HO_WBTC",
     ],
   })
 
-  await deploy('WBTCRewards', {
-    contract: 'HegicRewards',
+  await deploy("WBTCRewards", {
+    contract: "HegicRewards",
     from: deployer,
     log: true,
-    args: [WBTCOptions.address, HEGIC.address, "1000000000000000000000000", "1000000000", 0],
+    args: [
+      WBTCOptions.address,
+      HEGIC.address,
+      "1000000000000000000000000",
+      "1000000000",
+      0,
+    ],
   })
+}
 
-};
-
-deployment.tags = ['test']
-export default deployment;
+deployment.tags = ["test"]
+export default deployment
