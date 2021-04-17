@@ -88,7 +88,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     ) public view override returns (uint256 settlementFee, uint256 premium) {
         uint256 currentPrice = _currentPrice();
         require(
-            strike == currentPrice,
+            strike == currentPrice || strike == 0,
             "Only ATM options are currently available"
         );
         return (
@@ -106,7 +106,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         uint256 amount,
         IHegicOptions.OptionType optionType,
         uint256 currentPrice
-    ) internal view returns (uint256 fee) {
+    ) internal pure returns (uint256 fee) {
         if (optionType == IHegicOptions.OptionType.Call) return amount / 100;
         if (optionType == IHegicOptions.OptionType.Put)
             return (amount * currentPrice) / PRICE_DECIMALS / 100;
@@ -129,21 +129,19 @@ contract PriceCalculator is IPriceCalculator, Ownable {
             return
                 (amount *
                     currentPrice *
-                    _priceModifier(amount, period, currentPrice, stablePool)) /
+                    _priceModifier(amount, period, stablePool)) /
                 PRICE_MODIFIER_DECIMALS /
                 PRICE_DECIMALS /
                 DECIMALS_DIFF;
         if (optionType == IHegicOptions.OptionType.Call)
             return
-                (amount *
-                    _priceModifier(amount, period, currentPrice, assetPool)) /
+                (amount * _priceModifier(amount, period, assetPool)) /
                 PRICE_DECIMALS;
     }
 
     function _priceModifier(
         uint256 amount,
         uint256 period,
-        uint256 currentPrice,
         IHegicLiquidityPool pool
     ) internal view returns (uint256 iv) {
         uint256 poolBalance = pool.totalBalance();

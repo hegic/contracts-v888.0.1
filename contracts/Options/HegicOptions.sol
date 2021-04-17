@@ -42,7 +42,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     mapping(OptionType => IHegicLiquidityPool) public pool;
     mapping(OptionType => IHegicStaking) public settlementFeeRecipient;
     mapping(OptionType => IERC20) public token;
-    IPriceCalculator public priceCalculator;
+    IPriceCalculator public override priceCalculator;
 
     /**
      * @param _priceProvider The address of ChainLink price feed contract

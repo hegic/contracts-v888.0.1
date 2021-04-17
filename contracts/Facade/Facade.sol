@@ -39,7 +39,19 @@ import "../Interfaces/Interfaces.sol";
 contract Facade is Ownable {
     mapping(IERC20 => IHegicOptions) optionController;
 
-    IWETH weth;
+    IWETH public immutable WETH;
+    IERC20 public stableToken;
+    IUniswapV2Router01 public immutable exchange;
+
+    constructor(
+        IWETH weth,
+        IERC20 stable,
+        IUniswapV2Router01 router
+    ) {
+        WETH = weth;
+        exchange = router;
+        stableToken = stable;
+    }
 
     function createOption(
         IERC20 token,
@@ -48,23 +60,43 @@ contract Facade is Ownable {
         uint256 strike,
         IHegicOptions.OptionType optionType
     ) external payable {
-        _wrapTo(token);
+        (uint256 fee1, uint256 fee2) =
+            optionController[token].priceCalculator().fees(
+                period,
+                amount,
+                strike,
+                optionType
+            );
+        _wrapTo(token, fee1 + fee2);
         IHegicOptions options = optionController[token];
         options.createFor(msg.sender, period, amount, strike, optionType);
+        if (address(this).balance > 0)
+            payable(msg.sender).transfer(address(this).balance);
     }
 
     function append(IERC20 token, IHegicOptions options) external onlyOwner {
         optionController[token] = options;
+        stableToken.approve(address(options), type(uint256).max);
+        token.approve(address(options), type(uint256).max);
     }
 
     function stop(IERC20 token) external onlyOwner {
         delete optionController[token];
     }
 
-    function _wrapTo(IERC20 token) internal {
-        if (address(token) == address(weth)) weth.deposit{value: msg.value}();
+    function _wrapTo(IERC20 token, uint256 amount) internal {
+        if (address(token) == address(WETH)) WETH.deposit{value: amount}();
         else {
-            revert("TODO");
+            address[] memory path = new address[](2);
+            path[0] = address(WETH);
+            path[1] = address(token);
+            uint256[] memory amounts = exchange.getAmountsIn(amount, path);
+            exchange.swapETHForExactTokens{value: amounts[0]}(
+                amount,
+                path,
+                address(this),
+                block.timestamp
+            );
         }
     }
 

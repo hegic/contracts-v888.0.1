@@ -19,6 +19,12 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     args: ["USDC (Mock)", "USDC", 6],
   })
 
+  await deploy("WETH", {
+    contract: "WETHMock",
+    from: deployer,
+    log: true,
+  })
+
   const WBTC = await deploy("WBTC", {
     contract: "ERC20Mock",
     from: deployer,
@@ -45,6 +51,13 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     from: deployer,
     log: true,
     args: [50000e8],
+  })
+
+  await deploy("ETHPriceProvider", {
+    contract: "PriceProviderMock",
+    from: deployer,
+    log: true,
+    args: [2500e8],
   })
 
   const WBTCPricer = await deploy("WBTCPriceCalculator", {

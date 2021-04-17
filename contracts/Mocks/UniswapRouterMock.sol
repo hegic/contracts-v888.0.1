@@ -74,7 +74,7 @@ contract UniswapRouterMock {
         } else {
             revert("UniswapMock: wrong path");
         }
-
+        amounts = new uint256[](2);
         amounts[0] = (amount * 103) / 100;
         amounts[1] = amountOut;
     }
