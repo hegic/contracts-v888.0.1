@@ -4,6 +4,7 @@ import {solidity} from "ethereum-waffle"
 import chai from "chai"
 import {Facade} from "../../typechain/Facade"
 import {HegicPool} from "../../typechain/HegicPool"
+import {WethMock} from "../../typechain/WethMock"
 import {Erc20Mock as ERC20} from "../../typechain/Erc20Mock"
 
 chai.use(solidity)
@@ -14,13 +15,15 @@ const optionType = {
   CALL: 2,
 }
 
-describe("Facade", async () => {
+describe.only("Facade", async () => {
   let facade: Facade
   let WBTC: ERC20
   let USDC: ERC20
+  let WETH: WethMock
   let alice: Signer
   let WBTCPool: HegicPool
   let USDCPool: HegicPool
+  let WETHPool: HegicPool
 
   beforeEach(async () => {
     await deployments.fixture()
@@ -29,9 +32,11 @@ describe("Facade", async () => {
     // router = (await ethers.getContract("UniswapRouterMock")) as Uniswap
     facade = (await ethers.getContract("Facade")) as Facade
     WBTC = (await ethers.getContract("WBTC")) as ERC20
+    WETH = (await ethers.getContract("WETH")) as WethMock
     USDC = (await ethers.getContract("USDC")) as ERC20
     USDCPool = (await ethers.getContract("HegicUSDCPool")) as HegicPool
     WBTCPool = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+    WETHPool = (await ethers.getContract("HegicWETHPool")) as HegicPool
     // hegicStakingWBTC = (await ethers.getContract("WBTCStaking")) as HegicStaking
     // hegicStakingUSDC = (await ethers.getContract("USDCStaking")) as HegicStaking
     // priceCalculator = (await ethers.getContract(
@@ -42,6 +47,9 @@ describe("Facade", async () => {
     // fakeUSDC = (await ethers.getContract("USDC")) as Erc20Mock
     // WBTC = (await ethers.getContract("WBTC")) as Erc20Mock
 
+    await WETH.connect(alice).deposit({value: ethers.utils.parseUnits("100")})
+    await WETH.approv
+
     await WBTC.mintTo(
       await alice.getAddress(),
       ethers.utils.parseUnits("1000000", await WBTC.decimals()),
@@ -49,6 +57,11 @@ describe("Facade", async () => {
 
     await WBTC.connect(alice).approve(
       WBTCPool.address,
+      ethers.constants.MaxUint256,
+    )
+
+    await WETH.connect(alice).approve(
+      WETHPool.address,
       ethers.constants.MaxUint256,
     )
 
@@ -75,24 +88,24 @@ describe("Facade", async () => {
       true,
       0,
     )
+
+    await WETHPool.connect(alice).provideFrom(
+      await alice.getAddress(),
+      ethers.utils.parseUnits("100"),
+      true,
+      0,
+    )
   })
 
-  // let amount: BN
-  // let strike: BN
-  // let fees: Fees
-  // let deployerWBTCBalanceBefore: BN
-  // let deployerUSDCBalanceBefore: BN
-  // let aliceWBTCBalanceBefore: BN
-  // let aliceUSDCBalanceBefore: BN
-  // let hegicPoolWBTCBalanceBefore: BN
-  // let lockedAmountBefore: BN
-  // let hedgePremium: BN
-  // let hedgeFee: BN
-  // let amountToLock: BN
-  // let hegicStakingUSDCBalanceBefore: BN
-
-  describe("Options", () => {
+  describe("WBTC Options", () => {
     it("should create Call option", async () => {
+      const optionCostInETH = await facade.getOptionCost(
+        WBTC.address,
+        ONE_DAY,
+        ethers.utils.parseUnits("1", 8),
+        0,
+        optionType.CALL,
+      )
       await facade
         .connect(alice)
         .createOption(
@@ -101,7 +114,69 @@ describe("Facade", async () => {
           ethers.utils.parseUnits("1", 8),
           0,
           optionType.CALL,
-          {value: ethers.utils.parseUnits("1000")},
+          {value: optionCostInETH},
+        )
+    })
+
+    it("should create Put option", async () => {
+      const optionCostInETH = await facade.getOptionCost(
+        WBTC.address,
+        ONE_DAY,
+        ethers.utils.parseUnits("1", 8),
+        0,
+        optionType.PUT,
+      )
+      await facade
+        .connect(alice)
+        .createOption(
+          WBTC.address,
+          ONE_DAY,
+          ethers.utils.parseUnits("1", 8),
+          0,
+          optionType.PUT,
+          {value: optionCostInETH},
+        )
+    })
+  })
+
+  describe("ETH Options", () => {
+    it("should create Call option", async () => {
+      const optionCostInETH = await facade.getOptionCost(
+        WETH.address,
+        ONE_DAY,
+        ethers.utils.parseUnits("1"),
+        0,
+        optionType.CALL,
+      )
+      await facade
+        .connect(alice)
+        .createOption(
+          WETH.address,
+          ONE_DAY,
+          ethers.utils.parseUnits("1"),
+          0,
+          optionType.CALL,
+          {value: optionCostInETH},
+        )
+    })
+
+    it("should create Put option", async () => {
+      const optionCostInETH = await facade.getOptionCost(
+        WBTC.address,
+        ONE_DAY,
+        ethers.utils.parseUnits("1"),
+        0,
+        optionType.PUT,
+      )
+      await facade
+        .connect(alice)
+        .createOption(
+          WBTC.address,
+          ONE_DAY,
+          ethers.utils.parseUnits("1"),
+          0,
+          optionType.PUT,
+          {value: optionCostInETH},
         )
     })
   })

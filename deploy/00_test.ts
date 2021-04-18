@@ -19,7 +19,7 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     args: ["USDC (Mock)", "USDC", 6],
   })
 
-  await deploy("WETH", {
+  const WETH = await deploy("WETH", {
     contract: "WETHMock",
     from: deployer,
     log: true,
@@ -39,6 +39,13 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     args: [WBTC.address, "writeWBTC", "wWBTC"],
   })
 
+  const WETHPool = await deploy("HegicWETHPool", {
+    contract: "HegicPool",
+    from: deployer,
+    log: true,
+    args: [WETH.address, "writeWETH", "wWETH"],
+  })
+
   const USDCPool = await deploy("HegicUSDCPool", {
     contract: "HegicPool",
     from: deployer,
@@ -53,7 +60,7 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     args: [50000e8],
   })
 
-  await deploy("ETHPriceProvider", {
+  const ETHPriceProvider = await deploy("ETHPriceProvider", {
     contract: "PriceProviderMock",
     from: deployer,
     log: true,
@@ -73,11 +80,31 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     ],
   })
 
+  const WETHPricer = await deploy("WBTCPriceCalculator", {
+    contract: "PriceCalculator",
+    from: deployer,
+    log: true,
+    args: [
+      [9000, 10000, 20000],
+      ETHPriceProvider.address,
+      WETHPool.address,
+      USDCPool.address,
+      6,
+    ],
+  })
+
   const WBTCStaking = await deploy("WBTCStaking", {
     contract: "HegicStaking",
     from: deployer,
     log: true,
     args: [HEGIC.address, WBTC.address, "WBTC Staking", "WBTC S"],
+  })
+
+  const WETHStaking = await deploy("WETHStaking", {
+    contract: "HegicStaking",
+    from: deployer,
+    log: true,
+    args: [HEGIC.address, WETH.address, "WBTC Staking", "WBTC S"],
   })
 
   const USDCStaking = await deploy("USDCStaking", {
@@ -105,6 +132,24 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     ],
   })
 
+  const WETHOptions = await deploy("WETHOptions", {
+    contract: "HegicOptions",
+    from: deployer,
+    log: true,
+    args: [
+      ETHPriceProvider.address,
+      WETHPricer.address,
+      USDCPool.address,
+      WETHPool.address,
+      USDCStaking.address,
+      WETHStaking.address,
+      USDC.address,
+      WETH.address,
+      "HegicOptions WETH",
+      "HO_WETH",
+    ],
+  })
+
   await deploy("WBTCRewards", {
     contract: "HegicRewards",
     from: deployer,
@@ -114,6 +159,19 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
       HEGIC.address,
       "1000000000000000000000000",
       "1000000000",
+      0,
+    ],
+  })
+
+  await deploy("WETHRewards", {
+    contract: "HegicRewards",
+    from: deployer,
+    log: true,
+    args: [
+      WETHOptions.address,
+      HEGIC.address,
+      "1000000000000000000000000",
+      "0",
       0,
     ],
   })

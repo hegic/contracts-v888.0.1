@@ -167,7 +167,7 @@ interface IHegicOptions is IERC721 {
             uint256 lockedLiquidityID
         );
 
-    function priceCalculator() external returns (IPriceCalculator);
+    function priceCalculator() external view returns (IPriceCalculator);
 }
 
 interface IPriceCalculator {

@@ -38,6 +38,7 @@ import "../Interfaces/Interfaces.sol";
 
 contract Facade is Ownable {
     mapping(IERC20 => IHegicOptions) optionController;
+    mapping(IERC20 => IHegicLiquidityPool) poolController;
 
     IWETH public immutable WETH;
     IERC20 public stableToken;
@@ -67,14 +68,45 @@ contract Facade is Ownable {
                 strike,
                 optionType
             );
-        _wrapTo(token, fee1 + fee2);
+        if (optionType == IHegicOptions.OptionType.Call)
+            _wrapTo(token, fee1 + fee2);
+        else if (optionType == IHegicOptions.OptionType.Put)
+            _wrapTo(stableToken, fee1 + fee2);
         IHegicOptions options = optionController[token];
         options.createFor(msg.sender, period, amount, strike, optionType);
         if (address(this).balance > 0)
             payable(msg.sender).transfer(address(this).balance);
     }
 
-    function append(IERC20 token, IHegicOptions options) external onlyOwner {
+    function getOptionCost(
+        IERC20 token,
+        uint256 period,
+        uint256 amount,
+        uint256 strike,
+        IHegicOptions.OptionType optionType
+    ) external view returns (uint256) {
+        (uint256 fee1, uint256 fee2) =
+            optionController[token].priceCalculator().fees(
+                period,
+                amount,
+                strike,
+                optionType
+            );
+        if (address(token) == address(WETH)) return fee1 + fee2;
+
+        address[] memory path = new address[](2);
+        path[0] = address(WETH);
+        path[1] = optionType == IHegicOptions.OptionType.Call
+            ? address(token)
+            : address(stableToken);
+        uint256[] memory amounts = exchange.getAmountsIn(fee1 + fee2, path);
+        return amounts[0];
+    }
+
+    function appendHegicOptions(IERC20 token, IHegicOptions options)
+        external
+        onlyOwner
+    {
         optionController[token] = options;
         stableToken.approve(address(options), type(uint256).max);
         token.approve(address(options), type(uint256).max);

@@ -13,21 +13,32 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
   const facade = (await ethers.getContract("Facade")) as Facade
   const USDCPool = (await ethers.getContract("HegicUSDCPool")) as HegicPool
   const WBTCPool = (await ethers.getContract("HegicWBTCPool")) as HegicPool
+  const WETHPool = (await ethers.getContract("HegicWETHPool")) as HegicPool
   const WBTCOptions = (await ethers.getContract("WBTCOptions")) as HegicOptions
+  const WETHOptions = (await ethers.getContract("WETHOptions")) as HegicOptions
 
   await USDCPool.grantRole(
     await USDCPool.HEGIC_OPTIONS_ROLE(),
     WBTCOptions.address,
   )
+  await USDCPool.grantRole(
+    await USDCPool.HEGIC_OPTIONS_ROLE(),
+    WETHOptions.address,
+  )
   await WBTCPool.grantRole(
     await WBTCPool.HEGIC_OPTIONS_ROLE(),
     WBTCOptions.address,
   )
+  await WETHPool.grantRole(
+    await WETHPool.HEGIC_OPTIONS_ROLE(),
+    WETHOptions.address,
+  )
 
-  await WETH.deplosit({
+  await WETH.deposit({
     value: ethers.utils.parseUnits("1000"),
   })
-  await facade.append(WBTC.address, WBTCOptions.address)
+  await facade.appendHegicOptions(WBTC.address, WBTCOptions.address)
+  await facade.appendHegicOptions(WETH.address, WETHOptions.address)
 }
 
 deployment.tags = ["test"]

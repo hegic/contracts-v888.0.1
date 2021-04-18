@@ -21,7 +21,7 @@ pragma solidity 0.8.3;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract WETHMock is ERC20("WETH", "Wrapped Ether") {
-    function deplosit() external payable {
+    function deposit() external payable {
         _mint(msg.sender, msg.value);
     }
 
