@@ -80,7 +80,7 @@ async function deployment(hre: HardhatRuntimeEnvironment): Promise<void> {
     ],
   })
 
-  const WETHPricer = await deploy("WBTCPriceCalculator", {
+  const WETHPricer = await deploy("ETHPriceCalculator", {
     contract: "PriceCalculator",
     from: deployer,
     log: true,

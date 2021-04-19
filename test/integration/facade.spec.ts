@@ -15,7 +15,7 @@ const optionType = {
   CALL: 2,
 }
 
-describe.only("Facade", async () => {
+describe("Facade", async () => {
   let facade: Facade
   let WBTC: ERC20
   let USDC: ERC20
@@ -162,7 +162,7 @@ describe.only("Facade", async () => {
 
     it("should create Put option", async () => {
       const optionCostInETH = await facade.getOptionCost(
-        WBTC.address,
+        WETH.address,
         ONE_DAY,
         ethers.utils.parseUnits("1"),
         0,
@@ -171,7 +171,7 @@ describe.only("Facade", async () => {
       await facade
         .connect(alice)
         .createOption(
-          WBTC.address,
+          WETH.address,
           ONE_DAY,
           ethers.utils.parseUnits("1"),
           0,
