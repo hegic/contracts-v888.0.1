@@ -71,7 +71,7 @@ describe("PriceCalculator", async () => {
       expect(await priceCalculator.impliedVolRate(BN.from(2))).to.be.eq(
         BN.from(20000),
       )
-      expect(await priceCalculator.utilizationRate()).to.be.eq(
+      expect(await priceCalculator.UTILIZATION_RATE()).to.be.eq(
         BN.from(100000000),
       )
       expect(await priceCalculator.priceProvider()).to.be.eq(

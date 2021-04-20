@@ -45,10 +45,10 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     uint256 internal constant PRICE_DECIMALS = 1e8;
     uint256 internal constant PRICE_MODIFIER_DECIMALS = 1e8;
     uint256 internal immutable DECIMALS_DIFF;
-    uint256 public utilizationRate = 1e8;
-    AggregatorV3Interface public priceProvider;
-    IHegicLiquidityPool assetPool;
-    IHegicLiquidityPool stablePool;
+    uint256 public constant UTILIZATION_RATE = 1e8;
+    AggregatorV3Interface public immutable priceProvider;
+    IHegicLiquidityPool immutable assetPool;
+    IHegicLiquidityPool immutable stablePool;
 
     constructor(
         uint256[3] memory initialRates,
@@ -61,7 +61,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         stablePool = _stablePool;
         priceProvider = _priceProvider;
         impliedVolRate = initialRates;
-        DECIMALS_DIFF = 10**tokenDecimalsDiff;
+        DECIMALS_DIFF = 10 ** tokenDecimalsDiff;
     }
 
     /**
@@ -157,7 +157,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         uint256 utilization = (lockedAmount * 100e8) / poolBalance;
 
         if (utilization > 40e8) {
-            iv += (iv * (utilization - 40e8) * utilizationRate) / 40e16;
+            iv += (iv * (utilization - 40e8) * UTILIZATION_RATE) / 40e16;
         }
     }
 
