@@ -147,11 +147,13 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
 
+        // TODO: (gas optimisation) transfer directly to the pool
         token[OptionType.Call].safeTransferFrom(
             msg.sender,
             address(this),
             settlementFee + premium
         );
+        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
         settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
 
         uint256 lockedAmount = amount;
@@ -190,12 +192,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         optionID = options.length;
 
+        // TODO: (gas optimisation) transfer directly to the pool
         token[OptionType.Put].safeTransferFrom(
             msg.sender,
             address(this),
             settlementFee + premium
         );
 
+        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
         settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
         uint256 lockedLiquidityID =
             pool[OptionType.Put].lock(lockedAmount, premium);

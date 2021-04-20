@@ -123,6 +123,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
         );
 
         token.safeTransferFrom(msg.sender, address(this), premium);
+        // TODO: (gas optimisation) use withdrawal pattern
         if (hedgeFee > 0) token.safeTransfer(hedgePool, hedgeFee);
     }
 
