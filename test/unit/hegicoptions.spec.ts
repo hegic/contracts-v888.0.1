@@ -141,7 +141,9 @@ describe("HegicOptions", async () => {
           .connect(alice)
           .setSettlementFeeRecipients(
             await alice.getAddress(),
+            await hegicOptions.pool(1),
             await bob.getAddress(),
+            await hegicOptions.pool(2)
           ),
       ).to.be.revertedWith("caller is not the owner")
     })
@@ -150,7 +152,9 @@ describe("HegicOptions", async () => {
       await expect(
         hegicOptions.setSettlementFeeRecipients(
           ethers.constants.AddressZero,
+          await hegicOptions.pool(1),
           await bob.getAddress(),
+          await hegicOptions.pool(2)
         ),
       ).to.be.reverted
     })
@@ -159,7 +163,9 @@ describe("HegicOptions", async () => {
       await expect(
         hegicOptions.setSettlementFeeRecipients(
           await alice.getAddress(),
+          await hegicOptions.pool(1),
           ethers.constants.AddressZero,
+          await hegicOptions.pool(2)
         ),
       ).to.be.reverted
     })
@@ -167,8 +173,10 @@ describe("HegicOptions", async () => {
     it("should update the settlement fee recipients", async () => {
       await hegicOptions.setSettlementFeeRecipients(
         await alice.getAddress(),
+        await hegicOptions.pool(1),
         await bob.getAddress(),
-      )
+        await hegicOptions.pool(2)
+        )
 
       expect(await hegicOptions.settlementFeeRecipient(BN.from(1))).to.eq(
         await alice.getAddress(),

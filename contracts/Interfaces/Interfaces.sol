@@ -62,7 +62,7 @@ interface IHegicLiquidityPool is IERC721 {
 
     event Withdraw(address indexed account, uint256 tranchesID);
 
-    function lock(uint256 amount, uint256 premium)
+    function lock(uint256 amount, uint256 premium, uint256 settlementFee)
         external
         returns (uint256 id);
 
@@ -75,6 +75,8 @@ interface IHegicLiquidityPool is IERC721 {
     ) external;
 
     function setLockupPeriod(uint256 value) external;
+
+    function setSettlementFeeRecipient(IHegicStaking _settlementFeeRecipient) external;
 
     function setHedgePool(address value) external;
 

@@ -103,7 +103,7 @@ describe("HegicPool", async () => {
     })
     it("should revert if the caller is not the admin", async () => {
       await expect(
-        hegicPool.connect(alice).lock(BN.from(1), BN.from(1)),
+        hegicPool.connect(alice).lock(BN.from(1), BN.from(1), BN.from(1)),
       ).to.be.revertedWith("The caller must have the HEGIC_OPTIONS_ROLE role")
     })
 
@@ -112,14 +112,14 @@ describe("HegicPool", async () => {
       await expect(
         // Balance is 100000 * 8 = 800000
         // Locked amount is 90000 * 10 = 900000
-        hegicPool.lock(BN.from(90000), BN.from(1)),
+        hegicPool.lock(BN.from(90000), BN.from(1), BN.from(1)),
       ).to.be.revertedWith("Pool Error: Amount is too large")
     })
 
     it("should create locked liquidity", async () => {
       // Premium = premium * hedgedBalance / balance
       // 10 * 10000 / 10000
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       const ll = await hegicPool.lockedLiquidity(BN.from(0))
       expect(ll.amount).to.eq(BN.from(10000))
       expect(ll.hedgePremium).to.eq(BN.from(0))
@@ -135,7 +135,7 @@ describe("HegicPool", async () => {
       await fakeWBTC.mint(premium)
       await fakeWBTC.approve(hegicPool.address, ethers.constants.MaxUint256)
 
-      await hegicPool.lock(BN.from(10000), premium)
+      await hegicPool.lock(BN.from(10000), premium, BN.from(1))
 
       const poolTotalBalance = await hegicPool.totalBalance()
       const poolHedgedBalance = await hegicPool.hedgedBalance()
@@ -172,7 +172,7 @@ describe("HegicPool", async () => {
     })
 
     it("should revert if locked liquidity has already been unlocked", async () => {
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await hegicPool.unlock(BN.from(0))
       await expect(hegicPool.unlock(BN.from(0))).to.be.revertedWith(
         "LockedLiquidity with such id has already been unlocked",
@@ -182,7 +182,7 @@ describe("HegicPool", async () => {
     it("should set values correctly", async () => {
       // Premium = premium * hedgedBalance / balance
       // 10 * 10000 / 10000
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       const lockedAmountBefore = await hegicPool.lockedAmount()
       const llBefore = await hegicPool.lockedLiquidity(BN.from(0))
       expect(lockedAmountBefore).to.eq(BN.from(10000))
@@ -197,7 +197,7 @@ describe("HegicPool", async () => {
     })
 
     it("should emit a Profit event with correct values", async () => {
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await expect(hegicPool.unlock(BN.from(0)))
         .to.emit(hegicPool, "Profit")
         .withArgs(BN.from(0), BN.from(0), BN.from(0))
@@ -233,7 +233,7 @@ describe("HegicPool", async () => {
     })
 
     it("should emit a Loss event with correct data", async () => {
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await expect(
         hegicPool.send(
           BN.from(0),
@@ -249,7 +249,7 @@ describe("HegicPool", async () => {
       const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await hegicPool.send(BN.from(0), await alice.getAddress(), BN.from(10000))
       const balanceAfter = await fakeWBTC.balanceOf(await alice.getAddress())
       expect(balanceAfter).to.equal(BN.from(balanceBefore).add(BN.from(10000)))
@@ -259,7 +259,7 @@ describe("HegicPool", async () => {
       const balanceBefore = await fakeWBTC.balanceOf(await alice.getAddress())
       // Minted value minus amount pooled in beforeEach block
       expect(balanceBefore).to.equal(BN.from(10).pow(20).sub(100000))
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await hegicPool.send(
         BN.from(0),
         await alice.getAddress(),
@@ -270,7 +270,7 @@ describe("HegicPool", async () => {
     })
 
     it("should emit a Loss event with correct data", async () => {
-      await hegicPool.lock(BN.from(10000), BN.from(0))
+      await hegicPool.lock(BN.from(10000), BN.from(0), BN.from(1))
       await expect(
         hegicPool.send(BN.from(0), await alice.getAddress(), BN.from(1)),
       )

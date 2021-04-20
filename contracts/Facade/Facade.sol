@@ -41,7 +41,7 @@ contract Facade is Ownable {
     mapping(IERC20 => IHegicLiquidityPool) poolController;
 
     IWETH public immutable WETH;
-    IERC20 public stableToken;
+    IERC20 public immutable stableToken;
     IUniswapV2Router01 public immutable exchange;
 
     constructor(
@@ -73,6 +73,9 @@ contract Facade is Ownable {
         else if (optionType == IHegicOptions.OptionType.Put)
             _wrapTo(stableToken, fee1 + fee2);
         IHegicOptions options = optionController[token];
+        
+        require(address(options) != address(0), "!option controller does not exist");
+
         options.createFor(msg.sender, period, amount, strike, optionType);
         if (address(this).balance > 0)
             payable(msg.sender).transfer(address(this).balance);

@@ -40,7 +40,6 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
     AggregatorV3Interface public immutable priceProvider;
     mapping(OptionType => IHegicLiquidityPool) public pool;
-    mapping(OptionType => IHegicStaking) public settlementFeeRecipient;
     mapping(OptionType => IERC20) public token;
     IPriceCalculator public override priceCalculator;
 
@@ -63,7 +62,9 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         setPools(_stablePool, liquidityPool);
         setSettlementFeeRecipients(
             putSettlementFeeRecipient,
-            callSettlementFeeRecipient
+            _stablePool,
+            callSettlementFeeRecipient,
+            liquidityPool
         );
         priceCalculator = _pricer;
         token[OptionType.Call] = _token;
@@ -88,12 +89,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      */
     function setSettlementFeeRecipients(
         IHegicStaking putRecipient,
-        IHegicStaking callRecipient
+        IHegicLiquidityPool putPool,
+        IHegicStaking callRecipient,
+        IHegicLiquidityPool callPool
     ) public onlyOwner {
         require(address(putRecipient) != address(0));
         require(address(callRecipient) != address(0));
-        settlementFeeRecipient[OptionType.Put] = putRecipient;
-        settlementFeeRecipient[OptionType.Call] = callRecipient;
+        putPool.setSettlementFeeRecipient(putRecipient);
+        callPool.setSettlementFeeRecipient(callRecipient);
     }
 
     function setPriceCalculator(IPriceCalculator pc) public onlyOwner {
@@ -147,19 +150,16 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
 
-        // TODO: (gas optimisation) transfer directly to the pool
         token[OptionType.Call].safeTransferFrom(
             msg.sender,
-            address(this),
+            address(pool[OptionType.Call]),
             settlementFee + premium
         );
-        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
-        settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
 
         uint256 lockedAmount = amount;
         optionID = options.length;
         uint256 lockedLiquidityID =
-            pool[OptionType.Call].lock(lockedAmount, premium);
+            pool[OptionType.Call].lock(lockedAmount, premium, settlementFee);
 
         options.push(
             Option(
@@ -192,17 +192,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         optionID = options.length;
 
-        // TODO: (gas optimisation) transfer directly to the pool
         token[OptionType.Put].safeTransferFrom(
             msg.sender,
-            address(this),
+            address(pool[OptionType.Put]),
             settlementFee + premium
         );
 
-        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
-        settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
         uint256 lockedLiquidityID =
-            pool[OptionType.Put].lock(lockedAmount, premium);
+            pool[OptionType.Put].lock(lockedAmount, premium, settlementFee);
         options.push(
             Option(
                 uint128(amount),
@@ -246,16 +243,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
             address(pool[OptionType.Call]),
             type(uint256).max
         );
-        token[OptionType.Call].safeApprove(
-            address(settlementFeeRecipient[OptionType.Call]),
-            type(uint256).max
-        );
         token[OptionType.Put].safeApprove(
             address(pool[OptionType.Put]),
-            type(uint256).max
-        );
-        token[OptionType.Put].safeApprove(
-            address(settlementFeeRecipient[OptionType.Put]),
             type(uint256).max
         );
     }

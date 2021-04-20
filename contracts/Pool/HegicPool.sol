@@ -46,7 +46,8 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     Tranche[] public override tranches;
     LockedLiquidity[] public override lockedLiquidity;
     IERC20 public override immutable token;
-
+    // TODO: make immutable
+    IHegicStaking public settlementFeeRecipient;
     /*
      * @return _token WBTC Address
      */
@@ -66,6 +67,15 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     function setLockupPeriod(uint256 value) external override onlyAdmin {
         require(value <= 60 days, "Lockup period is too long");
         lockupPeriod = value;
+    }
+
+    // TODO WARNING: SET ACCESS
+    function setSettlementFeeRecipient(IHegicStaking _settlementFeeRecipient) external override  {
+        settlementFeeRecipient = _settlementFeeRecipient;
+        token.approve(
+            address(_settlementFeeRecipient),
+            type(uint256).max
+        );
     }
 
     /**
@@ -97,7 +107,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
      * @nonce Called by the HegicOptions contract for locking liquidity in options
      * @param amount Amount of funds that should be locked in an option
      */
-    function lock(uint256 amount, uint256 premium)
+    function lock(uint256 amount, uint256 premium, uint256 settlementFee)
         external
         override
         onlyHegicOptions
@@ -121,8 +131,13 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
                 true
             )
         );
-        // TODO: check that we have enough available capital without explicitly transfering
-        token.safeTransferFrom(msg.sender, address(this), premium);
+        
+        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
+        settlementFeeRecipient.sendProfit(settlementFee);
+
+        // TODO: test this 
+        require(_unlockedBalance() == premium, "!premium not sent to pool");
+
         // TODO: (gas optimisation) use withdrawal pattern
         if (hedgeFee > 0) token.safeTransfer(hedgePool, hedgeFee);
     }
@@ -288,6 +303,11 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
      */
     function totalBalance() public view override returns (uint256 balance) {
         return hedgedBalance + unhedgedBalance;
+    }
+
+    // balance sent to the contract that has not been used
+    function _unlockedBalance() internal view returns (uint256) {
+        return token.balanceOf(address(this)) - totalBalance();
     }
 
     function _beforeTokenTransfer(
