@@ -34,22 +34,22 @@ describe("HegicRewards", async () => {
 
     await fakeHegic.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
+      ethers.utils.parseUnits("888000", await fakeHegic.decimals()),
     )
 
     await fakeUSDC.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
+      ethers.utils.parseUnits("1000000", await fakeUSDC.decimals()),
     )
 
     await fakeWBTC.mintTo(
       await alice.getAddress(),
-      await ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
+      ethers.utils.parseUnits("1000000", await fakeWBTC.decimals()),
     )
 
     await fakeWBTC
       .connect(alice)
-      .approve(await hegicPoolWBTC.address, await ethers.constants.MaxUint256)
+      .approve(hegicPoolWBTC.address, ethers.constants.MaxUint256)
 
     await hegicPoolWBTC
       .connect(alice)
@@ -62,7 +62,7 @@ describe("HegicRewards", async () => {
 
     await fakeUSDC
       .connect(alice)
-      .approve(await hegicPoolUSDC.address, await ethers.constants.MaxUint256)
+      .approve(hegicPoolUSDC.address, ethers.constants.MaxUint256)
 
     await hegicPoolUSDC
       .connect(alice)
@@ -76,10 +76,8 @@ describe("HegicRewards", async () => {
 
   describe("constructor & settings", async () => {
     it("should set all initial state", async () => {
-      expect(await hegicRewards.hegicOptions()).to.eq(
-        await hegicOptions.address,
-      )
-      expect(await hegicRewards.hegic()).to.eq(await fakeHegic.address)
+      expect(await hegicRewards.hegicOptions()).to.eq(hegicOptions.address)
+      expect(await hegicRewards.hegic()).to.eq(fakeHegic.address)
       expect(await hegicRewards.rewardsRate()).to.eq(BN.from(10).pow(24))
     })
   })

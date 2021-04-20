@@ -43,7 +43,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
 
     address public hedgePool;
 
-    Tranche[] public tranches;
+    Tranche[] public override tranches;
     LockedLiquidity[] public override lockedLiquidity;
     IERC20 public override token;
 
@@ -75,7 +75,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
         public
         view
         virtual
-        override(ERC721, AccessControl)
+        override(ERC721, AccessControl, IERC165)
         returns (bool)
     {
         return

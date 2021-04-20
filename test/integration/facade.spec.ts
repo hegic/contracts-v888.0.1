@@ -184,11 +184,9 @@ describe.only("Facade", async () => {
 
   describe("Pool", () => {
     it("should provide ETH to pool (hedged)", async () => {
-      await facade
-        .connect(alice)
-        .provideToWethPool(WETHPool.address, true, 0, {
-          value: ethers.utils.parseEther("10"),
-        })
+      await facade.connect(alice).provideToWethPool(WETHPool.address, true, 0, {
+        value: ethers.utils.parseEther("10"),
+      })
     })
     it("should provide ETH to pool (unhedged)", async () => {
       await facade

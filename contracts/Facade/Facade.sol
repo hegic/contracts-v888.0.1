@@ -140,7 +140,7 @@ contract Facade is Ownable {
         WETH.deposit{value: msg.value}();
         if (WETH.allowance(address(this), address(pool)) < msg.value)
             WETH.approve(address(pool), type(uint256).max);
-        pool.provideFrom(msg.sender, msg.value, hedging, minShare);
+        return pool.provideFrom(msg.sender, msg.value, hedging, minShare);
     }
 
     /**

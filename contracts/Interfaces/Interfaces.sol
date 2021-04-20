@@ -27,7 +27,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 
-interface IHegicLiquidityPool {
+interface IHegicLiquidityPool is IERC721 {
     struct LockedLiquidity {
         uint256 amount;
         uint256 hedgePremium;
@@ -105,6 +105,17 @@ interface IHegicLiquidityPool {
             uint256 hedgePremium,
             uint256 unhedgePremium,
             bool locked
+        );
+
+    function tranches(uint256 id)
+        external
+        view
+        returns (
+            TrancheState state,
+            uint256 share,
+            uint256 amount,
+            uint256 creationTimestamp,
+            bool hedged
         );
 }
 
