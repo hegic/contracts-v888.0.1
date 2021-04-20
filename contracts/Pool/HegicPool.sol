@@ -121,7 +121,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
                 true
             )
         );
-
+        // TODO: check that we have enough available capital without explicitly transfering
         token.safeTransferFrom(msg.sender, address(this), premium);
         // TODO: (gas optimisation) use withdrawal pattern
         if (hedgeFee > 0) token.safeTransfer(hedgePool, hedgeFee);
@@ -134,7 +134,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     function unlock(uint256 id) external override onlyHegicOptions {
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
-        emit Profit(uint256(id), uint256(ll.hedgePremium), uint256(ll.unhedgePremium));
+        emit Profit(id, ll.hedgePremium, ll.unhedgePremium);
     }
 
     /*
@@ -151,21 +151,21 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
 
-        uint256 transferAmount = amount > uint256(ll.amount) ? uint256(ll.amount) : amount;
+        uint256 transferAmount = amount > ll.amount ? ll.amount : amount;
         token.safeTransfer(to, transferAmount);
         uint256 hedgeLoss = (transferAmount * hedgedBalance) / totalBalance();
         uint256 unhedgeLoss = transferAmount - hedgeLoss;
-        if (transferAmount <= uint256(ll.hedgePremium + ll.unhedgePremium))
+        if (transferAmount <= ll.hedgePremium + ll.unhedgePremium)
             emit Profit(
                 id,
-                uint256(ll.hedgePremium) - hedgeLoss,
-                uint256(ll.unhedgePremium) - unhedgeLoss
+                ll.hedgePremium - hedgeLoss,
+                ll.unhedgePremium - unhedgeLoss
             );
         else
             emit Loss(
                 id,
-                hedgeLoss - uint256(ll.hedgePremium),
-                unhedgeLoss - uint256(ll.unhedgePremium)
+                hedgeLoss - ll.hedgePremium,
+                unhedgeLoss - ll.unhedgePremium
             );
     }
 
@@ -175,9 +175,9 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
             "LockedLiquidity with such id has already been unlocked"
         );
         ll.locked = false;
-        lockedAmount -= uint256(ll.amount);
-        hedgedBalance += uint256(ll.hedgePremium);
-        unhedgedBalance += uint256(ll.unhedgePremium);
+        lockedAmount -= ll.amount;
+        hedgedBalance += ll.hedgePremium;
+        unhedgedBalance += ll.unhedgePremium;
     }
 
     /*
