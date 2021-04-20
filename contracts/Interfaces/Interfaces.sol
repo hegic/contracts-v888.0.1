@@ -29,9 +29,9 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 
 interface IHegicLiquidityPool is IERC721 {
     struct LockedLiquidity {
-        uint256 amount;
-        uint256 hedgePremium;
-        uint256 unhedgePremium;
+        uint88 amount;
+        uint80 hedgePremium;
+        uint80 unhedgePremium;
         bool locked;
     }
 
@@ -101,9 +101,9 @@ interface IHegicLiquidityPool is IERC721 {
         external
         view
         returns (
-            uint256 amount,
-            uint256 hedgePremium,
-            uint256 unhedgePremium,
+            uint88 amount,
+            uint80 hedgePremium,
+            uint80 unhedgePremium,
             bool locked
         );
 
@@ -148,12 +148,12 @@ interface IHegicOptions is IERC721 {
     enum OptionType {Invalid, Put, Call}
 
     struct Option {
+        uint128 amount;
+        uint32 strike;
+        uint32 expiration;
+        uint32 lockedLiquidityID;
         State state;
-        uint256 strike;
-        uint256 amount;
-        uint256 expiration;
         OptionType optionType;
-        uint256 lockedLiquidityID;
     }
 
     function unlock(uint256) external;
@@ -170,12 +170,12 @@ interface IHegicOptions is IERC721 {
         external
         view
         returns (
+            uint128 amount,
+            uint32 strike,
+            uint32 expiration,
+            uint32 lockedLiquidityID,
             State state,
-            uint256 strike,
-            uint256 amount,
-            uint256 expiration,
-            OptionType optionType,
-            uint256 lockedLiquidityID
+            OptionType optionType
         );
 
     function priceCalculator() external view returns (IPriceCalculator);

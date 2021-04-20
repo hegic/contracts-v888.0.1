@@ -38,7 +38,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
     Option[] public override options;
 
-    AggregatorV3Interface public priceProvider;
+    AggregatorV3Interface public immutable priceProvider;
     mapping(OptionType => IHegicLiquidityPool) public pool;
     mapping(OptionType => IHegicStaking) public settlementFeeRecipient;
     mapping(OptionType => IERC20) public token;
@@ -161,12 +161,12 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         options.push(
             Option(
+                uint128(amount),
+                uint32(strike),
+                uint32(block.timestamp + period),
+                uint32(lockedLiquidityID),
                 State.Active,
-                strike,
-                amount,
-                block.timestamp + period,
-                OptionType.Call,
-                lockedLiquidityID
+                OptionType.Call
             )
         );
 
@@ -201,12 +201,12 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
             pool[OptionType.Put].lock(lockedAmount, premium);
         options.push(
             Option(
+                uint128(amount),
+                uint32(strike),
+                uint32(block.timestamp + period),
+                uint32(lockedLiquidityID),
                 State.Active,
-                strike,
-                amount,
-                block.timestamp + period,
-                OptionType.Put,
-                lockedLiquidityID
+                OptionType.Put
             )
         );
 

@@ -32,7 +32,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
 
     uint256 public constant INITIAL_RATE = 1e20;
     uint256 public lockupPeriod = 2 weeks;
-    uint256 public hedgeFeeRate = 80;
+    uint256 public constant HEDGE_FEE_RATE = 80;
 
     uint256 public override lockedAmount;
 
@@ -45,7 +45,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
 
     Tranche[] public override tranches;
     LockedLiquidity[] public override lockedLiquidity;
-    IERC20 public override token;
+    IERC20 public override immutable token;
 
     /*
      * @return _token WBTC Address
@@ -109,15 +109,15 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
             "Pool Error: Amount is too large."
         );
         uint256 hedgePremium = (premium * hedgedBalance) / balance;
-        uint256 hedgeFee = (hedgePremium * hedgeFeeRate) / 100;
+        uint256 hedgeFee = (hedgePremium * HEDGE_FEE_RATE) / 100;
 
         lockedAmount += amount;
         id = lockedLiquidity.length;
         lockedLiquidity.push(
             LockedLiquidity(
-                amount,
-                hedgePremium - hedgeFee,
-                premium - hedgePremium,
+                uint88(amount),
+                uint80(hedgePremium - hedgeFee),
+                uint80(premium - hedgePremium),
                 true
             )
         );
@@ -133,7 +133,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     function unlock(uint256 id) external override onlyHegicOptions {
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
-        emit Profit(id, ll.hedgePremium, ll.unhedgePremium);
+        emit Profit(uint256(id), uint256(ll.hedgePremium), uint256(ll.unhedgePremium));
     }
 
     /*
@@ -150,21 +150,21 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
         LockedLiquidity storage ll = lockedLiquidity[id];
         _unlock(ll);
 
-        uint256 transferAmount = amount > ll.amount ? ll.amount : amount;
+        uint256 transferAmount = amount > uint256(ll.amount) ? uint256(ll.amount) : amount;
         token.safeTransfer(to, transferAmount);
         uint256 hedgeLoss = (transferAmount * hedgedBalance) / totalBalance();
         uint256 unhedgeLoss = transferAmount - hedgeLoss;
-        if (transferAmount <= ll.hedgePremium + ll.unhedgePremium)
+        if (transferAmount <= uint256(ll.hedgePremium + ll.unhedgePremium))
             emit Profit(
                 id,
-                ll.hedgePremium - hedgeLoss,
-                ll.unhedgePremium - unhedgeLoss
+                uint256(ll.hedgePremium) - hedgeLoss,
+                uint256(ll.unhedgePremium) - unhedgeLoss
             );
         else
             emit Loss(
                 id,
-                hedgeLoss - ll.hedgePremium,
-                unhedgeLoss - ll.unhedgePremium
+                hedgeLoss - uint256(ll.hedgePremium),
+                unhedgeLoss - uint256(ll.unhedgePremium)
             );
     }
 
@@ -174,9 +174,9 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
             "LockedLiquidity with such id has already been unlocked"
         );
         ll.locked = false;
-        lockedAmount -= ll.amount;
-        hedgedBalance += ll.hedgePremium;
-        unhedgedBalance += ll.unhedgePremium;
+        lockedAmount -= uint256(ll.amount);
+        hedgedBalance += uint256(ll.hedgePremium);
+        unhedgedBalance += uint256(ll.unhedgePremium);
     }
 
     /*
