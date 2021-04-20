@@ -15,7 +15,7 @@ const optionType = {
   CALL: 2,
 }
 
-describe("Facade", async () => {
+describe.only("Facade", async () => {
   let facade: Facade
   let WBTC: ERC20
   let USDC: ERC20
@@ -88,13 +88,6 @@ describe("Facade", async () => {
       true,
       0,
     )
-
-    await WETHPool.connect(alice).provideFrom(
-      await alice.getAddress(),
-      ethers.utils.parseUnits("100"),
-      true,
-      0,
-    )
   })
 
   describe("WBTC Options", () => {
@@ -140,6 +133,14 @@ describe("Facade", async () => {
   })
 
   describe("ETH Options", () => {
+    beforeEach(async () => {
+      await WETHPool.connect(alice).provideFrom(
+        await alice.getAddress(),
+        ethers.utils.parseUnits("100"),
+        true,
+        0,
+      )
+    })
     it("should create Call option", async () => {
       const optionCostInETH = await facade.getOptionCost(
         WETH.address,
@@ -181,5 +182,20 @@ describe("Facade", async () => {
     })
   })
 
-  describe("Pool", () => {})
+  describe("Pool", () => {
+    it("should provide ETH to pool (hedged)", async () => {
+      await facade
+        .connect(alice)
+        .provideToWethPool(WETHPool.address, true, 0, {
+          value: ethers.utils.parseEther("10"),
+        })
+    })
+    it("should provide ETH to pool (unhedged)", async () => {
+      await facade
+        .connect(alice)
+        .provideToWethPool(WETHPool.address, false, 0, {
+          value: ethers.utils.parseEther("10"),
+        })
+    })
+  })
 })

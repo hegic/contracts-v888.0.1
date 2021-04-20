@@ -132,6 +132,17 @@ contract Facade is Ownable {
         }
     }
 
+    function provideToWethPool(
+        IHegicLiquidityPool pool,
+        bool hedging,
+        uint256 minShare
+    ) external payable returns (uint256) {
+        WETH.deposit{value: msg.value}();
+        if (WETH.allowance(address(this), address(pool)) < msg.value)
+            WETH.approve(address(pool), type(uint256).max);
+        pool.provideFrom(msg.sender, msg.value, hedging, minShare);
+    }
+
     /**
      * @notice Unlocks an array of options
      * @param optionIDs array of options

@@ -29,16 +29,4 @@ library HegicMath {
         uint256 k = (x + 1) >> 1;
         while (k < result) (result, k) = (k, (x / k + k) >> 1);
     }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers, reverting on
-     * division by zero.
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a % b == 0 ? a / b : (a / b) + 1;
-    }
 }
