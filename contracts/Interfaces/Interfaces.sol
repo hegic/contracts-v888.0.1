@@ -151,9 +151,9 @@ interface IHegicOptions is IERC721 {
 
     struct Option {
         uint128 amount;
-        uint32 strike;
+        uint56 strike;
         uint32 expiration;
-        uint32 lockedLiquidityID;
+        uint24 lockedLiquidityID;
         State state;
         OptionType optionType;
     }
@@ -173,9 +173,9 @@ interface IHegicOptions is IERC721 {
         view
         returns (
             uint128 amount,
-            uint32 strike,
+            uint56 strike,
             uint32 expiration,
-            uint32 lockedLiquidityID,
+            uint24 lockedLiquidityID,
             State state,
             OptionType optionType
         );

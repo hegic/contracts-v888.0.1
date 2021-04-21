@@ -172,9 +172,9 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         options.push(
             Option(
                 uint128(amount),
-                uint32(strike),
+                uint56(strike),
                 uint32(block.timestamp + period),
-                uint32(lockedLiquidityID),
+                uint24(lockedLiquidityID),
                 State.Active,
                 OptionType.Call
             )
@@ -211,9 +211,9 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         options.push(
             Option(
                 uint128(amount),
-                uint32(strike),
+                uint56(strike),
                 uint32(block.timestamp + period),
-                uint32(lockedLiquidityID),
+                uint24(lockedLiquidityID),
                 State.Active,
                 OptionType.Put
             )
