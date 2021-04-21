@@ -136,7 +136,8 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
         settlementFeeRecipient.sendProfit(settlementFee);
 
         // TODO: test this 
-        require(_unlockedBalance() == premium, "!premium not sent to pool");
+        uint256 unlockedBalance = token.balanceOf(address(this)) - balance;
+        require(unlockedBalance == premium, "!premium not sent to pool");
 
         // TODO: (gas optimisation) use withdrawal pattern
         if (hedgeFee > 0) token.safeTransfer(hedgePool, hedgeFee);

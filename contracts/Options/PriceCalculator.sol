@@ -91,6 +91,11 @@ contract PriceCalculator is IPriceCalculator, Ownable {
             strike == currentPrice || strike == 0,
             "Only ATM options are currently available"
         );
+        
+        // NOTE: this is enforced here to be able to increase period in the future without upgrading main contracts
+        require(period >= 1 days, "Period is too short");
+        require(period <= 12 weeks, "Period is too long");
+        
         return (
             getSettlementFee(amount, optionType, currentPrice),
             getPeriodFee(amount, period, currentPrice, optionType)

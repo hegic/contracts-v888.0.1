@@ -40,7 +40,9 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
     AggregatorV3Interface public immutable priceProvider;
     mapping(OptionType => IHegicLiquidityPool) public pool;
-    mapping(OptionType => IERC20) public token;
+    IERC20 public immutable tokenCall;
+    IERC20 public immutable tokenPut; 
+    // mapping(OptionType => IERC20) public token;
     IPriceCalculator public override priceCalculator;
 
     /**
@@ -67,10 +69,18 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
             liquidityPool
         );
         priceCalculator = _pricer;
-        token[OptionType.Call] = _token;
-        token[OptionType.Put] = _stable;
+        tokenCall = _token;
+        tokenPut = _stable;
         priceProvider = _priceProvider;
-        approve();
+
+        IERC20(_token).safeApprove(
+            address(pool[OptionType.Call]),
+            type(uint256).max
+        );
+        IERC20(_stable).safeApprove(
+            address(pool[OptionType.Put]),
+            type(uint256).max
+        );
 
         uint256 baseDecimals = _token.decimals();
         uint256 stableDecimals = _stable.decimals();
@@ -127,8 +137,6 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         OptionType optionType
     ) external override returns (uint256 optionID) {
         if (strike == 0) strike = _currentPrice();
-        require(period >= 1 days, "Period is too short");
-        require(period <= 12 weeks, "Period is too long");
 
         require(
             optionType == OptionType.Call || optionType == OptionType.Put,
@@ -150,7 +158,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
 
-        token[OptionType.Call].safeTransferFrom(
+        tokenCall.safeTransferFrom(
             msg.sender,
             address(pool[OptionType.Call]),
             settlementFee + premium
@@ -192,7 +200,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         optionID = options.length;
 
-        token[OptionType.Put].safeTransferFrom(
+        tokenPut.safeTransferFrom(
             msg.sender,
             address(pool[OptionType.Put]),
             settlementFee + premium
@@ -239,11 +247,11 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      * @notice Allows the ERC pool contract to receive and send tokens
      */
     function approve() public {
-        token[OptionType.Call].safeApprove(
+        tokenCall.safeApprove(
             address(pool[OptionType.Call]),
             type(uint256).max
         );
-        token[OptionType.Put].safeApprove(
+        tokenPut.safeApprove(
             address(pool[OptionType.Put]),
             type(uint256).max
         );
