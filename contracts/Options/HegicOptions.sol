@@ -179,7 +179,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
                 uint32(block.timestamp + period),
                 uint24(lockedLiquidityID),
                 State.Active,
-                OptionType.Call
+                OptionType.Call,
+                account
             )
         );
 
@@ -244,7 +245,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         Option storage option = options[optionID];
 
         require(
-            _isApprovedOrOwner(msg.sender, optionID),
+            option.owner == msg.sender || _isApprovedOrOwner(msg.sender, optionID),
             "msg.sender can't exercise this option"
         );
         require(option.expiration >= block.timestamp, "Option has expired");
@@ -293,7 +294,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     function payProfit(uint256 optionID) internal returns (uint256 profit) {
         Option memory option = options[optionID];
 
-        address holder = ownerOf(optionID);
+        address holder = option.owner;
         uint256 currentPrice = _currentPrice();
 
         if (option.optionType == OptionType.Call) {
@@ -317,5 +318,13 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     function _currentPrice() internal view returns (uint256 price) {
         (, int256 latestPrice, , , ) = priceProvider.latestRoundData();
         price = uint256(latestPrice);
+    }
+
+    // TODO: test this
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override {
+        if(from != address(0) && to != address(0)){
+            require(options[tokenId].owner == from, "!sth-went-wrong");
+            options[tokenId].owner = to;
+        }
     }
 }
