@@ -101,14 +101,14 @@ describe("HegicOptions", async () => {
       )
       expect(await hegicOptions.pool(BN.from(1))).to.eq(hegicPoolUSDC.address)
       expect(await hegicOptions.pool(BN.from(2))).to.eq(hegicPoolWBTC.address)
-      expect(await hegicOptions.settlementFeeRecipient(BN.from(1))).to.eq(
+      expect(await hegicPoolUSDC.settlementFeeRecipient()).to.eq(
         hegicStakingUSDC.address,
       )
-      expect(await hegicOptions.settlementFeeRecipient(BN.from(2))).to.eq(
+      expect(await hegicPoolWBTC.settlementFeeRecipient()).to.eq(
         hegicStakingWBTC.address,
       )
-      expect(await hegicOptions.token(BN.from(1))).to.eq(fakeUSDC.address)
-      expect(await hegicOptions.token(BN.from(2))).to.eq(fakeWBTC.address)
+      expect(await hegicOptions.tokenPut()).to.eq(fakeUSDC.address)
+      expect(await hegicOptions.tokenCall()).to.eq(fakeWBTC.address)
       expect(await hegicOptions.priceProvider()).to.be.eq(
         fakePriceProvider.address,
       )
@@ -178,11 +178,11 @@ describe("HegicOptions", async () => {
         await hegicOptions.pool(2)
         )
 
-      expect(await hegicOptions.settlementFeeRecipient(BN.from(1))).to.eq(
+      expect(await hegicPoolUSDC.settlementFeeRecipient()).to.eq(
         await alice.getAddress(),
       )
 
-      expect(await hegicOptions.settlementFeeRecipient(BN.from(2))).to.eq(
+      expect(await hegicPoolWBTC.settlementFeeRecipient()).to.eq(
         await bob.getAddress(),
       )
     })

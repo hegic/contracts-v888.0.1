@@ -15,7 +15,7 @@ const optionType = {
   CALL: 2,
 }
 
-describe.only("Facade", async () => {
+describe("Facade", async () => {
   let facade: Facade
   let WBTC: ERC20
   let USDC: ERC20

@@ -140,7 +140,7 @@ describe("Options", async () => {
         )
       const poolTotalBalance = await hegicPoolWBTC.totalBalance()
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
-      const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
+      const poolHedgeFeeRate = await hegicPoolWBTC.HEDGE_FEE_RATE()
 
       hedgePremium = fees.premium.mul(poolHedgedBalance).div(poolTotalBalance)
 
@@ -290,7 +290,7 @@ describe("Options", async () => {
         )
       const poolTotalBalance = await hegicPoolWBTC.totalBalance()
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
-      const poolHedgeFeeRate = await hegicPoolWBTC.hedgeFeeRate()
+      const poolHedgeFeeRate = await hegicPoolWBTC.HEDGE_FEE_RATE()
 
       hedgePremium = fees.premium.mul(poolHedgedBalance).div(poolTotalBalance)
 

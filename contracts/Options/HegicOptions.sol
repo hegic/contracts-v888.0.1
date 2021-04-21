@@ -245,7 +245,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         Option storage option = options[optionID];
 
         require(
-            option.owner == msg.sender || _isApprovedOrOwner(msg.sender, optionID),
+            option.owner == msg.sender || _exists(optionID) && _isApprovedOrOwner(msg.sender, optionID),
             "msg.sender can't exercise this option"
         );
         require(option.expiration >= block.timestamp, "Option has expired");
