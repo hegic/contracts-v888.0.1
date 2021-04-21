@@ -220,13 +220,20 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
                 uint32(block.timestamp + period),
                 uint24(lockedLiquidityID),
                 State.Active,
-                OptionType.Put
+                OptionType.Put,
+                account
             )
         );
 
         // only mint if user requested it
         if(mintOption) _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
+    }
+
+    function mintOption(uint256 optionId) external {
+        Option memory option = options[optionId];
+        require(msg.sender == option.owner, "!not authorized");
+        _safeMint(msg.sender, optionId);
     }
 
     /**

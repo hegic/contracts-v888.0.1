@@ -156,6 +156,7 @@ interface IHegicOptions is IERC721 {
         uint24 lockedLiquidityID;
         State state;
         OptionType optionType;
+        address owner;
     }
 
     function unlock(uint256) external;
@@ -178,7 +179,8 @@ interface IHegicOptions is IERC721 {
             uint32 expiration,
             uint24 lockedLiquidityID,
             State state,
-            OptionType optionType
+            OptionType optionType,
+            address owner
         );
 
     function priceCalculator() external view returns (IPriceCalculator);
