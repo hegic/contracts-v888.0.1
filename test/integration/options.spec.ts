@@ -136,6 +136,7 @@ describe("Options", async () => {
           amount,
           strike,
           BN.from(2),
+          false
         )
       const poolTotalBalance = await hegicPoolWBTC.totalBalance()
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()
@@ -194,6 +195,7 @@ describe("Options", async () => {
           amount,
           strike,
           BN.from(2),
+          false
         )
     })
     it("should send the hedge fee and settlement fee to the deployer address", async () => {
@@ -227,6 +229,7 @@ describe("Options", async () => {
           amount,
           strike,
           BN.from(1),
+          false
         )
 
       amountToLock = amount
@@ -283,6 +286,7 @@ describe("Options", async () => {
           amount,
           strike,
           BN.from(1),
+          false
         )
       const poolTotalBalance = await hegicPoolWBTC.totalBalance()
       const poolHedgedBalance = await hegicPoolWBTC.hedgedBalance()

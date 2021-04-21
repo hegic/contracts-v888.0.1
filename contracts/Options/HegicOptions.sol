@@ -134,7 +134,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         uint256 period,
         uint256 amount,
         uint256 strike,
-        OptionType optionType
+        OptionType optionType,
+        bool mintOption
     ) external override returns (uint256 optionID) {
         if (strike == 0) strike = _currentPrice();
 
@@ -144,28 +145,30 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         );
 
         if (optionType == OptionType.Call)
-            return _createCall(account, period, amount, strike);
+            return _createCall(account, period, amount, strike, mintOption);
         if (optionType == OptionType.Put)
-            return _createPut(account, period, amount, strike);
+            return _createPut(account, period, amount, strike, mintOption);
     }
 
     function _createCall(
         address account,
         uint256 period,
         uint256 amount,
-        uint256 strike
+        uint256 strike,
+        bool mintOption
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
+
+        uint256 lockedAmount = amount;
+        optionID = options.length;
 
         tokenCall.safeTransferFrom(
             msg.sender,
             address(pool[OptionType.Call]),
             settlementFee + premium
         );
-
-        uint256 lockedAmount = amount;
-        optionID = options.length;
+        
         uint256 lockedLiquidityID =
             pool[OptionType.Call].lock(lockedAmount, premium, settlementFee);
 
@@ -180,7 +183,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
             )
         );
 
-        _safeMint(account, optionID);
+        // only mint if user requested it
+        if(mintOption) _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
     }
 
@@ -188,7 +192,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         address account,
         uint256 period,
         uint256 amount,
-        uint256 strike
+        uint256 strike,
+        bool mintOption
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Put);
@@ -219,7 +224,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
             )
         );
 
-        _safeMint(account, optionID);
+        // only mint if user requested it
+        if(mintOption) _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
     }
 

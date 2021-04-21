@@ -107,6 +107,7 @@ describe.only("Facade", async () => {
           ethers.utils.parseUnits("1", 8),
           0,
           optionType.CALL,
+          false,
           {value: optionCostInETH},
         )
     })
@@ -127,6 +128,7 @@ describe.only("Facade", async () => {
           ethers.utils.parseUnits("1", 8),
           0,
           optionType.PUT,
+          false,
           {value: optionCostInETH},
         )
     })
@@ -157,6 +159,7 @@ describe.only("Facade", async () => {
           ethers.utils.parseUnits("1"),
           0,
           optionType.CALL,
+          false,
           {value: optionCostInETH},
         )
     })
@@ -177,6 +180,7 @@ describe.only("Facade", async () => {
           ethers.utils.parseUnits("1"),
           0,
           optionType.PUT,
+          false,
           {value: optionCostInETH},
         )
     })

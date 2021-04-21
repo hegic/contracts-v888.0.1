@@ -165,7 +165,8 @@ interface IHegicOptions is IERC721 {
         uint256 period,
         uint256 amount,
         uint256 strike,
-        OptionType optionType
+        OptionType optionType,
+        bool mintOption
     ) external returns (uint256 optionID);
 
     function options(uint256)

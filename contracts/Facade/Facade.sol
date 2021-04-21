@@ -59,7 +59,8 @@ contract Facade is Ownable {
         uint256 period,
         uint256 amount,
         uint256 strike,
-        IHegicOptions.OptionType optionType
+        IHegicOptions.OptionType optionType,
+        bool mintOption
     ) external payable {
         (uint256 fee1, uint256 fee2) =
             optionController[token].priceCalculator().fees(
@@ -76,7 +77,7 @@ contract Facade is Ownable {
         
         require(address(options) != address(0), "!option controller does not exist");
 
-        options.createFor(msg.sender, period, amount, strike, optionType);
+        options.createFor(msg.sender, period, amount, strike, optionType, mintOption);
         if (address(this).balance > 0)
             payable(msg.sender).transfer(address(this).balance);
     }
