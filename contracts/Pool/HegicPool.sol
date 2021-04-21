@@ -32,7 +32,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
 
     uint256 public constant INITIAL_RATE = 1e20;
     uint256 public lockupPeriod = 2 weeks;
-    uint256 public hedgeFeeRate = 80;
+    uint256 public constant HEDGE_FEE_RATE = 80;
 
     uint256 public override lockedAmount;
 
@@ -45,8 +45,9 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
 
     Tranche[] public override tranches;
     LockedLiquidity[] public override lockedLiquidity;
-    IERC20 public override token;
-
+    IERC20 public override immutable token;
+    // TODO: make immutable
+    IHegicStaking public settlementFeeRecipient;
     /*
      * @return _token WBTC Address
      */
@@ -66,6 +67,15 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
     function setLockupPeriod(uint256 value) external override onlyAdmin {
         require(value <= 60 days, "Lockup period is too long");
         lockupPeriod = value;
+    }
+
+    // TODO WARNING: SET ACCESS
+    function setSettlementFeeRecipient(IHegicStaking _settlementFeeRecipient) external override  {
+        settlementFeeRecipient = _settlementFeeRecipient;
+        token.approve(
+            address(_settlementFeeRecipient),
+            type(uint256).max
+        );
     }
 
     /**
@@ -97,7 +107,7 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
      * @nonce Called by the HegicOptions contract for locking liquidity in options
      * @param amount Amount of funds that should be locked in an option
      */
-    function lock(uint256 amount, uint256 premium)
+    function lock(uint256 amount, uint256 premium, uint256 settlementFee)
         external
         override
         onlyHegicOptions
@@ -109,20 +119,27 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
             "Pool Error: Amount is too large."
         );
         uint256 hedgePremium = (premium * hedgedBalance) / balance;
-        uint256 hedgeFee = (hedgePremium * hedgeFeeRate) / 100;
+        uint256 hedgeFee = (hedgePremium * HEDGE_FEE_RATE) / 100;
 
         lockedAmount += amount;
         id = lockedLiquidity.length;
         lockedLiquidity.push(
             LockedLiquidity(
-                amount,
-                hedgePremium - hedgeFee,
-                premium - hedgePremium,
+                uint88(amount),
+                uint80(hedgePremium - hedgeFee),
+                uint80(premium - hedgePremium),
                 true
             )
         );
+        
+        // TODO: (gas optimisation) remove transfer and use withdrawal pattern
+        settlementFeeRecipient.sendProfit(settlementFee);
 
-        token.safeTransferFrom(msg.sender, address(this), premium);
+        // TODO: test this 
+        uint256 unlockedBalance = token.balanceOf(address(this)) - balance;
+        require(unlockedBalance == premium, "!premium not sent to pool");
+
+        // TODO: (gas optimisation) use withdrawal pattern
         if (hedgeFee > 0) token.safeTransfer(hedgePool, hedgeFee);
     }
 
@@ -287,6 +304,11 @@ contract HegicPool is IHegicLiquidityPool, ERC721, HegicPoolAccess {
      */
     function totalBalance() public view override returns (uint256 balance) {
         return hedgedBalance + unhedgedBalance;
+    }
+
+    // balance sent to the contract that has not been used
+    function _unlockedBalance() internal view returns (uint256) {
+        return token.balanceOf(address(this)) - totalBalance();
     }
 
     function _beforeTokenTransfer(

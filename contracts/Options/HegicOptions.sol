@@ -38,10 +38,11 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
     Option[] public override options;
 
-    AggregatorV3Interface public priceProvider;
+    AggregatorV3Interface public immutable priceProvider;
     mapping(OptionType => IHegicLiquidityPool) public pool;
-    mapping(OptionType => IHegicStaking) public settlementFeeRecipient;
-    mapping(OptionType => IERC20) public token;
+    IERC20 public immutable tokenCall;
+    IERC20 public immutable tokenPut; 
+    // mapping(OptionType => IERC20) public token;
     IPriceCalculator public override priceCalculator;
 
     /**
@@ -63,13 +64,23 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         setPools(_stablePool, liquidityPool);
         setSettlementFeeRecipients(
             putSettlementFeeRecipient,
-            callSettlementFeeRecipient
+            _stablePool,
+            callSettlementFeeRecipient,
+            liquidityPool
         );
         priceCalculator = _pricer;
-        token[OptionType.Call] = _token;
-        token[OptionType.Put] = _stable;
+        tokenCall = _token;
+        tokenPut = _stable;
         priceProvider = _priceProvider;
-        approve();
+
+        IERC20(_token).safeApprove(
+            address(pool[OptionType.Call]),
+            type(uint256).max
+        );
+        IERC20(_stable).safeApprove(
+            address(pool[OptionType.Put]),
+            type(uint256).max
+        );
 
         uint256 baseDecimals = _token.decimals();
         uint256 stableDecimals = _stable.decimals();
@@ -88,12 +99,14 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      */
     function setSettlementFeeRecipients(
         IHegicStaking putRecipient,
-        IHegicStaking callRecipient
+        IHegicLiquidityPool putPool,
+        IHegicStaking callRecipient,
+        IHegicLiquidityPool callPool
     ) public onlyOwner {
         require(address(putRecipient) != address(0));
         require(address(callRecipient) != address(0));
-        settlementFeeRecipient[OptionType.Put] = putRecipient;
-        settlementFeeRecipient[OptionType.Call] = callRecipient;
+        putPool.setSettlementFeeRecipient(putRecipient);
+        callPool.setSettlementFeeRecipient(callRecipient);
     }
 
     function setPriceCalculator(IPriceCalculator pc) public onlyOwner {
@@ -121,11 +134,10 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         uint256 period,
         uint256 amount,
         uint256 strike,
-        OptionType optionType
+        OptionType optionType,
+        bool mintOption
     ) external override returns (uint256 optionID) {
         if (strike == 0) strike = _currentPrice();
-        require(period >= 1 days, "Period is too short");
-        require(period <= 12 weeks, "Period is too long");
 
         require(
             optionType == OptionType.Call || optionType == OptionType.Put,
@@ -133,44 +145,47 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         );
 
         if (optionType == OptionType.Call)
-            return _createCall(account, period, amount, strike);
+            return _createCall(account, period, amount, strike, mintOption);
         if (optionType == OptionType.Put)
-            return _createPut(account, period, amount, strike);
+            return _createPut(account, period, amount, strike, mintOption);
     }
 
     function _createCall(
         address account,
         uint256 period,
         uint256 amount,
-        uint256 strike
+        uint256 strike,
+        bool mintOption
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Call);
 
-        token[OptionType.Call].safeTransferFrom(
-            msg.sender,
-            address(this),
-            settlementFee + premium
-        );
-        settlementFeeRecipient[OptionType.Call].sendProfit(settlementFee);
-
         uint256 lockedAmount = amount;
         optionID = options.length;
+
+        tokenCall.safeTransferFrom(
+            msg.sender,
+            address(pool[OptionType.Call]),
+            settlementFee + premium
+        );
+        
         uint256 lockedLiquidityID =
-            pool[OptionType.Call].lock(lockedAmount, premium);
+            pool[OptionType.Call].lock(lockedAmount, premium, settlementFee);
 
         options.push(
             Option(
+                uint128(amount),
+                uint56(strike),
+                uint32(block.timestamp + period),
+                uint24(lockedLiquidityID),
                 State.Active,
-                strike,
-                amount,
-                block.timestamp + period,
                 OptionType.Call,
-                lockedLiquidityID
+                account
             )
         );
 
-        _safeMint(account, optionID);
+        // only mint if user requested it
+        if(mintOption) _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
     }
 
@@ -178,7 +193,8 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         address account,
         uint256 period,
         uint256 amount,
-        uint256 strike
+        uint256 strike,
+        bool mintOption
     ) internal returns (uint256 optionID) {
         (uint256 settlementFee, uint256 premium) =
             priceCalculator.fees(period, amount, strike, OptionType.Put);
@@ -190,28 +206,35 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
 
         optionID = options.length;
 
-        token[OptionType.Put].safeTransferFrom(
+        tokenPut.safeTransferFrom(
             msg.sender,
-            address(this),
+            address(pool[OptionType.Put]),
             settlementFee + premium
         );
 
-        settlementFeeRecipient[OptionType.Put].sendProfit(settlementFee);
         uint256 lockedLiquidityID =
-            pool[OptionType.Put].lock(lockedAmount, premium);
+            pool[OptionType.Put].lock(lockedAmount, premium, settlementFee);
         options.push(
             Option(
+                uint128(amount),
+                uint56(strike),
+                uint32(block.timestamp + period),
+                uint24(lockedLiquidityID),
                 State.Active,
-                strike,
-                amount,
-                block.timestamp + period,
                 OptionType.Put,
-                lockedLiquidityID
+                account
             )
         );
 
-        _safeMint(account, optionID);
+        // only mint if user requested it
+        if(mintOption) _safeMint(account, optionID);
         emit Create(optionID, account, settlementFee, premium);
+    }
+
+    function mintOption(uint256 optionId) external {
+        Option memory option = options[optionId];
+        require(msg.sender == option.owner, "!not authorized");
+        _safeMint(msg.sender, optionId);
     }
 
     /**
@@ -222,7 +245,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
         Option storage option = options[optionID];
 
         require(
-            _isApprovedOrOwner(msg.sender, optionID),
+            option.owner == msg.sender || _exists(optionID) && _isApprovedOrOwner(msg.sender, optionID),
             "msg.sender can't exercise this option"
         );
         require(option.expiration >= block.timestamp, "Option has expired");
@@ -238,20 +261,12 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
      * @notice Allows the ERC pool contract to receive and send tokens
      */
     function approve() public {
-        token[OptionType.Call].safeApprove(
+        tokenCall.safeApprove(
             address(pool[OptionType.Call]),
             type(uint256).max
         );
-        token[OptionType.Call].safeApprove(
-            address(settlementFeeRecipient[OptionType.Call]),
-            type(uint256).max
-        );
-        token[OptionType.Put].safeApprove(
+        tokenPut.safeApprove(
             address(pool[OptionType.Put]),
-            type(uint256).max
-        );
-        token[OptionType.Put].safeApprove(
-            address(settlementFeeRecipient[OptionType.Put]),
             type(uint256).max
         );
     }
@@ -279,7 +294,7 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     function payProfit(uint256 optionID) internal returns (uint256 profit) {
         Option memory option = options[optionID];
 
-        address holder = ownerOf(optionID);
+        address holder = option.owner;
         uint256 currentPrice = _currentPrice();
 
         if (option.optionType == OptionType.Call) {
@@ -303,5 +318,13 @@ contract HegicOptions is Ownable, IHegicOptions, ERC721 {
     function _currentPrice() internal view returns (uint256 price) {
         (, int256 latestPrice, , , ) = priceProvider.latestRoundData();
         price = uint256(latestPrice);
+    }
+
+    // TODO: test this
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override {
+        if(from != address(0) && to != address(0)){
+            require(options[tokenId].owner == from, "!sth-went-wrong");
+            options[tokenId].owner = to;
+        }
     }
 }

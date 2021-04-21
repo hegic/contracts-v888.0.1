@@ -29,9 +29,9 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 
 interface IHegicLiquidityPool is IERC721 {
     struct LockedLiquidity {
-        uint256 amount;
-        uint256 hedgePremium;
-        uint256 unhedgePremium;
+        uint88 amount;
+        uint80 hedgePremium;
+        uint80 unhedgePremium;
         bool locked;
     }
 
@@ -62,7 +62,7 @@ interface IHegicLiquidityPool is IERC721 {
 
     event Withdraw(address indexed account, uint256 tranchesID);
 
-    function lock(uint256 amount, uint256 premium)
+    function lock(uint256 amount, uint256 premium, uint256 settlementFee)
         external
         returns (uint256 id);
 
@@ -75,6 +75,8 @@ interface IHegicLiquidityPool is IERC721 {
     ) external;
 
     function setLockupPeriod(uint256 value) external;
+
+    function setSettlementFeeRecipient(IHegicStaking _settlementFeeRecipient) external;
 
     function setHedgePool(address value) external;
 
@@ -101,9 +103,9 @@ interface IHegicLiquidityPool is IERC721 {
         external
         view
         returns (
-            uint256 amount,
-            uint256 hedgePremium,
-            uint256 unhedgePremium,
+            uint88 amount,
+            uint80 hedgePremium,
+            uint80 unhedgePremium,
             bool locked
         );
 
@@ -148,12 +150,13 @@ interface IHegicOptions is IERC721 {
     enum OptionType {Invalid, Put, Call}
 
     struct Option {
+        uint128 amount;
+        uint56 strike;
+        uint32 expiration;
+        uint24 lockedLiquidityID;
         State state;
-        uint256 strike;
-        uint256 amount;
-        uint256 expiration;
         OptionType optionType;
-        uint256 lockedLiquidityID;
+        address owner;
     }
 
     function unlock(uint256) external;
@@ -163,19 +166,21 @@ interface IHegicOptions is IERC721 {
         uint256 period,
         uint256 amount,
         uint256 strike,
-        OptionType optionType
+        OptionType optionType,
+        bool mintOption
     ) external returns (uint256 optionID);
 
     function options(uint256)
         external
         view
         returns (
+            uint128 amount,
+            uint56 strike,
+            uint32 expiration,
+            uint24 lockedLiquidityID,
             State state,
-            uint256 strike,
-            uint256 amount,
-            uint256 expiration,
             OptionType optionType,
-            uint256 lockedLiquidityID
+            address owner
         );
 
     function priceCalculator() external view returns (IPriceCalculator);
